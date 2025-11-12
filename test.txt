@@ -1,0 +1,6 @@
+#
+4
+A->a|#
+B->CA
+C->DA
+D->ABABCD|b
