@@ -22,10 +22,12 @@ int main()
         auto p = line.find("->");
         r.from = line.substr(0, p);
         for (auto part : line.substr(p + 2) | std::views::split('|')) {
-            r.tos.push_back(part | std::views::transform([&ep](auto const &ch) {
-                                return ch == ep ? epsilon : std::string{ch};
-                            }) |
-                            std::ranges::to<Symbol_string>());
+            auto trans_epsilon =
+                part | std::views::transform([&ep](auto const &ch) {
+                    return ch == ep ? epsilon : std::string{ch};
+                }) |
+                std::ranges::to<Symbol_string>();
+            r.tos.push_back(trans_epsilon);
         }
         std::println("from: {}, tos: {}", r.from, r.tos);
         prods.push_back(r);
