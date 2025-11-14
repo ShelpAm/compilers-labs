@@ -9,12 +9,12 @@
 
 using Symbol = std::string;
 using Symbol_string = std::deque<Symbol>;
+using Symbol_set = std::unordered_set<Symbol>;
 
-constexpr Symbol epsilon{"#"};
 constexpr Symbol eol{"$"};
 
 struct Production {
-    Symbol from;
+    Symbol from; // Will be recognized as nonterminal
     std::vector<Symbol_string> tos;
 };
 
@@ -61,9 +61,8 @@ class Grammar;
 
 class Select_set_iterator {
     friend class Select_set_view;
-    using Iterator =
-        std::unordered_map<Single_production_handle,
-                           std::unordered_set<Symbol>>::const_iterator;
+    using Iterator = std::unordered_map<Single_production_handle,
+                                        Symbol_set>::const_iterator;
 
   public:
     bool operator!=(Select_set_iterator const &other) const
@@ -115,60 +114,47 @@ class Grammar {
     friend class Select_set_view;
 
   public:
-    Grammar(std::vector<Production> productions);
+    Grammar(std::vector<Production> productions, Symbol epsilon);
 
     void build();
+    void summary() const;
 
-    std::unordered_set<Symbol> const &empty_set() const;
-
-    std::unordered_set<Symbol> first_set(Symbol_string const &str) const;
+    Symbol_set const &nullable_set() const;
+    Symbol_set const &first_set(Symbol const &s) const;
+    [[nodiscard]] Symbol_set first_set(Symbol_string const &str) const;
+    Symbol_set const &follow_set(Symbol const &s) const;
+    [[nodiscard]] Select_set_view select_set_view() const;
 
     Single_production
     get_single_production(Single_production_handle const &handle) const;
 
-    [[nodiscard]] Select_set_view select_set_view() const;
-
   private:
-    static bool is_terminal(Symbol const &s)
-    {
-        return s.size() == 1 &&
-               (std::islower(s[0]) != 0 || (std::isdigit(s[0]) != 0));
-    }
+    bool is_epsilon(Symbol_string const &str) const;
 
-    static bool is_epsilon(Symbol_string const &str)
-    {
-        return str.size() == 1 && str[0] == epsilon;
-    }
+    Symbol_set extract_epsilon(Symbol_set s) const;
 
     void add_production(Production r);
+
+    void build_terminals();
 
     void build_nullable_set();
     void build_first_set();
     void build_follow_set();
     void build_select_set();
 
-    static std::unordered_set<Symbol>
-    extract_epsilon(std::unordered_set<Symbol> s);
-
     Symbol begin_;
+    Symbol epsilon_;
 
     std::unordered_map<Symbol, std::vector<Symbol_string>> productions_;
-    std::unordered_set<Symbol> nonterminals_;
-    std::unordered_set<Symbol> terminals_;
+    Symbol_set nonterminals_;
+    Symbol_set terminals_;
 
     // After being built, followings will have valid values.
-    bool built{};
-    bool nullables_built{};
-    bool first_set_built{};
-    bool follow_set_built{};
-    bool select_set_built{};
-
     // FIRST SET of the Grammar
     std::unordered_set<Symbol> nullables_; // Symbols that can derive to epsilon
-    std::unordered_map<Symbol, std::unordered_set<Symbol>> first_set_;
-    std::unordered_map<Symbol, std::unordered_set<Symbol>> follow_set_;
-    std::unordered_map<Single_production_handle, std::unordered_set<Symbol>>
-        select_set_;
+    std::unordered_map<Symbol, Symbol_set> first_set_;
+    std::unordered_map<Symbol, Symbol_set> follow_set_;
+    std::unordered_map<Single_production_handle, Symbol_set> select_set_;
 
     std::unordered_set<Symbol> invalid_symbols_; // Contains invalid symbols
 };
