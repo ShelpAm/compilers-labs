@@ -1,7 +1,0 @@
-#
-5
-S->MH|a
-H->LS0|#
-K->dML|#
-L->eHf
-M->K|bLM

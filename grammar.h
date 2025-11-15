@@ -1,6 +1,6 @@
 #pragma once
-
 #include <deque>
+#include <filesystem>
 #include <format>
 #include <string>
 #include <unordered_map>
@@ -110,28 +110,45 @@ class Select_set_view {
     Grammar const *owner_;
 };
 
+using LL1_parse_table =
+    std::unordered_map<Symbol, std::unordered_map<Symbol, Single_production>>;
+
 class Grammar {
     friend class Select_set_view;
+    using Nullable_set = Symbol_set;
+    using First_set = std::unordered_map<Symbol, Symbol_set>;
+    using Follow_set = std::unordered_map<Symbol, Symbol_set>;
+    using Select_set = std::unordered_map<Single_production_handle, Symbol_set>;
 
   public:
+    static Grammar from_file(std::filesystem::path const &p);
+
     Grammar(std::vector<Production> productions, Symbol epsilon);
 
     void build();
     void summary() const;
 
-    Symbol_set const &nullable_set() const;
-    Symbol_set const &first_set(Symbol const &s) const;
-    [[nodiscard]] Symbol_set first_set(Symbol_string const &str) const;
-    Symbol_set const &follow_set(Symbol const &s) const;
-    [[nodiscard]] Select_set_view select_set_view() const;
+    [[nodiscard]] bool is_nullable(Symbol const &s) const;
+    [[nodiscard]] Symbol_set const &first(Symbol const &s) const;
+    [[nodiscard]] Symbol_set first(Symbol_string const &str) const;
+    [[nodiscard]] Symbol_set const &follow(Symbol const &s) const;
+    [[nodiscard]] Symbol_set const &
+    select(Single_production_handle const &handle) const;
 
-    Single_production
+    [[nodiscard]] LL1_parse_table ll1_parse_table() const;
+
+    [[nodiscard]] Single_production
     get_single_production(Single_production_handle const &handle) const;
+
+    [[nodiscard]] bool match(Symbol_string s) const;
+    [[nodiscard]] bool match_with_recursive_descending(Symbol_string s) const;
 
   private:
     bool is_epsilon(Symbol_string const &str) const;
 
     Symbol_set extract_epsilon(Symbol_set s) const;
+
+    [[nodiscard]] Select_set_view select_set_view() const;
 
     void add_production(Production r);
 
@@ -154,7 +171,7 @@ class Grammar {
     std::unordered_set<Symbol> nullables_; // Symbols that can derive to epsilon
     std::unordered_map<Symbol, Symbol_set> first_set_;
     std::unordered_map<Symbol, Symbol_set> follow_set_;
-    std::unordered_map<Single_production_handle, Symbol_set> select_set_;
+    Select_set select_set_;
 
     std::unordered_set<Symbol> invalid_symbols_; // Contains invalid symbols
 };

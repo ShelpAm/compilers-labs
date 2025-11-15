@@ -1,4 +1,5 @@
-#include "grammar.h"
+#include <grammar.h>
+
 #include <iostream>
 #include <print>
 #include <ranges>
@@ -12,6 +13,9 @@ int main()
     int n;
     std::cin >> n;
     std::cin.get();
+
+    auto to_sv =
+        std::views::transform([](auto t) { return std::string_view{t}; });
     // LINE FORMAT: A -> B d | a | <epsilon>
     std::vector<Production> prods;
     for (int i{}; i != n; ++i) {
@@ -20,8 +24,6 @@ int main()
         std::getline(std::cin, line);
         Production r;
 
-        auto to_sv =
-            std::views::transform([](auto t) { return std::string_view{t}; });
         auto tokens = line | std::views::split(' ') | to_sv |
                       std::ranges::to<std::vector>();
 

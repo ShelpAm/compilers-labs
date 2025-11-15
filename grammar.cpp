@@ -1,6 +1,9 @@
-#include "grammar.h"
+// module;
+#include <grammar.h>
+
 #include <algorithm>
 #include <cassert>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -8,6 +11,8 @@
 #include <queue>
 #include <ranges>
 #include <utility>
+
+// module grammar;
 
 Grammar::Grammar(std::vector<Production> productions, Symbol epsilon)
     : begin_{productions.front().from}, epsilon_{std::move(epsilon)}
@@ -36,17 +41,17 @@ void Grammar::build()
     build_select_set();
 }
 
-Symbol_set const &Grammar::nullable_set() const
+bool Grammar::is_nullable(Symbol const &s) const
 {
-    return nullables_;
+    return nullables_.contains(s);
 }
 
-Symbol_set const &Grammar::first_set(Symbol const &s) const
+Symbol_set const &Grammar::first(Symbol const &s) const
 {
     return first_set_.at(s);
 }
 
-Symbol_set Grammar::first_set(Symbol_string const &str) const
+Symbol_set Grammar::first(Symbol_string const &str) const
 {
     if (is_epsilon(str)) {
         return {epsilon_};
@@ -77,7 +82,7 @@ Symbol_set Grammar::first_set(Symbol_string const &str) const
     return res;
 }
 
-Symbol_set const &Grammar::follow_set(Symbol const &s) const
+Symbol_set const &Grammar::follow(Symbol const &s) const
 {
     return follow_set_.at(s);
 }
@@ -124,7 +129,6 @@ void Grammar::build_nullable_set()
 }
 
 void Grammar::build_first_set()
-
 {
     for (auto const &nonterminal : nonterminals_)
         if (nullables_.contains(nonterminal))
@@ -171,10 +175,10 @@ void Grammar::build_follow_set()
                 for (auto i = to.size() - 1; i != -1UZ; --i) {
                     auto const &e = to[i];
                     if (nonterminals_.contains(e)) {
-                        auto first = first_set(beta);
-                        auto node = first.extract(epsilon_); // Step 3
+                        auto fs = first(beta);
+                        auto node = fs.extract(epsilon_); // Step 3
                         auto prev_size = follow_set_[e].size();
-                        follow_set_[e].insert_range(first); // Step 2
+                        follow_set_[e].insert_range(fs); // Step 2
                         if (!node.empty()) // FIRST(beta) contains epsilon
                             follow_set_[e].insert_range(follow_set_[from]);
                         auto cur_size = follow_set_[e].size();
@@ -192,9 +196,9 @@ void Grammar::build_select_set()
         for (auto const &[i, to] : tos | std::views::enumerate) {
             auto idx = static_cast<std::size_t>(i);
             auto cur = Single_production_handle{.from = from, .index = idx};
-            auto first = first_set(to);
-            auto node = first.extract(epsilon_);
-            select_set_[cur].insert_range(first);
+            auto fs = first(to);
+            auto node = fs.extract(epsilon_);
+            select_set_[cur].insert_range(fs);
             if (!node.empty()) { // first contains epsilon
                 select_set_[cur].insert_range(follow_set_[from]);
             }
@@ -251,19 +255,10 @@ void Grammar::summary() const
     std::println("\033[36mFOLLOW set\033[0m: {}", follow_set_);
     std::println("\033[36mSELECT set:\033[0m");
     for (auto const &[prod, set] : select_set_view()) {
-        std::println("    {}: {}", prod, set);
+        std::println("    {}: {},", prod, set);
     }
 
-    std::unordered_map<Symbol, std::unordered_map<Symbol, Single_production>>
-        map;
-    for (auto const &[prod, set] : select_set_view()) {
-        for (auto const &terminal : set) {
-            if (map[prod.from].contains(terminal))
-                throw std::runtime_error{"Not a LL(1) grammar"};
-            map[prod.from][terminal] = prod;
-        }
-    }
-
+    auto map = ll1_parse_table();
     std::println("\033[36mLL(1) parsing table:\033[0m");
     std::print("    ");
     for (auto const &terminal : terminals_) {
@@ -281,7 +276,140 @@ void Grammar::summary() const
         std::println();
     }
 }
+
 bool Grammar::is_epsilon(Symbol_string const &str) const
 {
     return str.size() == 1 && str[0] == epsilon_;
+}
+
+bool Grammar::match([[maybe_unused]] Symbol_string s) const
+{
+    assert(std::ranges::all_of(
+        s, [this](auto const &s) { return terminals_.contains(s); }));
+
+    s.push_back(eol);
+    Symbol_string t{eol, begin_}; // Acts as a stack
+    auto ll1t = ll1_parse_table();
+    while (!t.empty()) {
+        // std::println("t={}  {}=s", t, s);
+        if (terminals_.contains(t.back()) || t.back() == eol) {
+            if (t.back() != s.front()) {
+                // std::println("Terminal doesn't match, failed to match");
+                return false;
+            }
+            t.pop_back();
+            s.pop_front();
+            continue;
+        }
+        auto jt = ll1t[t.back()].find(s.front());
+        if (jt == ll1t[t.back()].end()) {
+            // std::println("No item to match, failed to match");
+            return false;
+        }
+        auto const &prod = jt->second;
+        // std::println("Using production {}", prod);
+        assert(prod.from == t.back());
+        t.pop_back();
+        if (!is_epsilon(prod.to))
+            t.insert_range(t.end(), prod.to | std::views::reverse);
+    }
+    // No need to check eol because t won't contain eol. TODO: maybe this should
+    // be checked?
+    // std::println("All symbols in t matched, matching ok");
+    return true;
+}
+
+LL1_parse_table Grammar::ll1_parse_table() const
+{
+    LL1_parse_table table;
+    for (auto const &[prod, set] : select_set_view()) {
+        for (auto const &terminal : set) {
+            if (table[prod.from].contains(terminal))
+                throw std::runtime_error{"Not a LL(1) grammar"};
+            table[prod.from][terminal] = prod;
+        }
+    }
+    return table;
+}
+
+Grammar Grammar::from_file(std::filesystem::path const &p)
+{
+    std::ifstream ifs{p};
+
+    std::string ep;
+    ifs >> ep;
+    int n;
+    ifs >> n;
+    ifs.get();
+    // LINE FORMAT: A -> B d | a | <epsilon>
+    std::vector<Production> prods;
+    for (int i{}; i != n; ++i) {
+        std::string line;
+        std::getline(ifs, line);
+        Production r;
+
+        auto to_sv =
+            std::views::transform([](auto t) { return std::string_view{t}; });
+        auto tokens = line | std::views::split(' ') | to_sv |
+                      std::ranges::to<std::vector>();
+
+        auto from = (tokens | std::views::take(1)).front();
+        auto tos = tokens | std::views::drop(2) | std::views::split("|") |
+                   std::ranges::to<std::vector<Symbol_string>>();
+        r.from = from;
+        r.tos = tos;
+
+        prods.push_back(r);
+    }
+
+    return {prods, ep};
+}
+
+Symbol_set const &Grammar::select(Single_production_handle const &handle) const
+{
+    return select_set_.at(handle);
+}
+
+bool Grammar::match_with_recursive_descending(Symbol_string str) const
+{
+    auto const &tbl = ll1_parse_table();
+    auto it = str.begin();
+    auto token = [this, &it, &str](Symbol const &symbol) {
+        // std::println("Go into {}", symbol);
+        if (symbol == epsilon_) {
+            return true;
+        }
+        bool res{it != str.end() && symbol == *it};
+        ++it;
+        return res;
+    };
+    std::unordered_map<Symbol, std::function<bool()>> functions;
+    for (auto const &nonterminal : nonterminals_) {
+        auto fn = [this, &nonterminal, token, &it, &functions, &tbl]() -> bool {
+            // std::println("Go into {}", nonterminal);
+            return tbl.at(nonterminal).contains(*it) &&
+                   std::ranges::all_of(
+                       tbl.at(nonterminal).at(*it).to,
+                       [this, token, &functions](auto const &s) {
+                           if (terminals_.contains(s) || s == epsilon_)
+                               return token(s);
+                           return functions.at(s)();
+                       });
+            // Another implemetation not using std::ranges::allof.
+            // if (!tbl.at(nonterminal).contains(*it)) {
+            //     return false;
+            // }
+            // for (auto const &s : tbl.at(nonterminal).at(*it).to) {
+            //     if (terminals_.contains(s) || s == epsilon_)
+            //         if (!token(s))
+            //             return false;
+            //     if (!functions.at(s)())
+            //         return false;
+            // }
+            // return true;
+        };
+        functions.insert({nonterminal, fn});
+    };
+
+    return functions.at(begin_)();
 }
