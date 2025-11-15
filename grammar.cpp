@@ -282,7 +282,7 @@ bool Grammar::is_epsilon(Symbol_string const &str) const
     return str.size() == 1 && str[0] == epsilon_;
 }
 
-bool Grammar::match([[maybe_unused]] Symbol_string s) const
+bool Grammar::match(Symbol_string s) const
 {
     assert(std::ranges::all_of(
         s, [this](auto const &s) { return terminals_.contains(s); }));
