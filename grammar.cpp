@@ -14,10 +14,10 @@
 
 // module grammar;
 
-Grammar::Grammar(std::vector<Production> productions, Symbol epsilon)
-    : begin_{productions.front().from}, epsilon_{std::move(epsilon)}
+Grammar::Grammar(std::vector<Production> prods, Symbol epsilon)
+    : begin_{prods.front().from}, epsilon_{std::move(epsilon)}
 {
-    for (auto &production : productions)
+    for (auto &production : prods)
         add_production(std::move(production));
 
     build();
@@ -46,18 +46,18 @@ bool Grammar::is_nullable(Symbol const &s) const
     return nullables_.contains(s);
 }
 
-Symbol_set const &Grammar::first(Symbol const &s) const
+SymbolSet const &Grammar::first(Symbol const &s) const
 {
     return first_set_.at(s);
 }
 
-Symbol_set Grammar::first(Symbol_string const &str) const
+SymbolSet Grammar::first(SymbolString const &str) const
 {
     if (is_epsilon(str)) {
         return {epsilon_};
     }
 
-    Symbol_set res;
+    SymbolSet res;
 
     bool nullable{true};
     for (auto const &symbol : str) {
@@ -82,7 +82,7 @@ Symbol_set Grammar::first(Symbol_string const &str) const
     return res;
 }
 
-Symbol_set const &Grammar::follow(Symbol const &s) const
+SymbolSet const &Grammar::follow(Symbol const &s) const
 {
     return follow_set_.at(s);
 }
@@ -91,8 +91,8 @@ void Grammar::build_nullable_set()
 {
     // Map of dependency count
     std::unordered_map<Symbol, std::vector<std::size_t>> nullable_cnt;
-    std::unordered_map<
-        Symbol, std::unordered_map<Single_production_handle, std::size_t>>
+    std::unordered_map<Symbol,
+                       std::unordered_map<SingleProductionHandle, std::size_t>>
         dep_map;
 
     std::queue<Symbol> que; // For nullable propagation.
@@ -171,7 +171,7 @@ void Grammar::build_follow_set()
                 }
 
                 // alpha e beta
-                Symbol_string beta;
+                SymbolString beta;
                 for (auto i = to.size() - 1; i != -1UZ; --i) {
                     auto const &e = to[i];
                     if (nonterminals_.contains(e)) {
@@ -195,7 +195,7 @@ void Grammar::build_select_set()
     for (auto const &[from, tos] : productions_)
         for (auto const &[i, to] : tos | std::views::enumerate) {
             auto idx = static_cast<std::size_t>(i);
-            auto cur = Single_production_handle{.from = from, .index = idx};
+            auto cur = SingleProductionHandle{.from = from, .index = idx};
             auto fs = first(to);
             auto node = fs.extract(epsilon_);
             select_set_[cur].insert_range(fs);
@@ -205,38 +205,38 @@ void Grammar::build_select_set()
         }
 }
 
-Symbol_set Grammar::extract_epsilon(Symbol_set s) const
+SymbolSet Grammar::extract_epsilon(SymbolSet s) const
 {
     s.extract(epsilon_);
     return s;
 }
 
-Single_production
-Grammar::get_single_production(Single_production_handle const &handle) const
+SingleProduction
+Grammar::get_single_production(SingleProductionHandle const &handle) const
 {
     return {.from{handle.from},
             .to{productions_.at(handle.from)[handle.index]}};
 }
 
-std::pair<Single_production, Symbol_set> Select_set_iterator::operator*() const
+std::pair<SingleProduction, SymbolSet> SelectSetIterator::operator*() const
 {
     auto const &[handle, set] = *it_;
     return {owner_->get_single_production(handle), set};
 }
 
-Select_set_iterator Select_set_view::begin()
+SelectSetIterator SelectSetView::begin()
 {
-    return Select_set_iterator{owner_->select_set_.begin(), owner_};
+    return SelectSetIterator{owner_->select_set_.begin(), owner_};
 }
 
-Select_set_iterator Select_set_view::end()
+SelectSetIterator SelectSetView::end()
 {
-    return Select_set_iterator{owner_->select_set_.end(), owner_};
+    return SelectSetIterator{owner_->select_set_.end(), owner_};
 }
 
-Select_set_view Grammar::select_set_view() const
+SelectSetView Grammar::make_select_set_view() const
 {
-    return Select_set_view{this};
+    return SelectSetView{this};
 }
 
 void Grammar::build_terminals()
@@ -254,11 +254,11 @@ void Grammar::summary() const
     std::println("\033[36mFIRST set\033[0m: {}", first_set_);
     std::println("\033[36mFOLLOW set\033[0m: {}", follow_set_);
     std::println("\033[36mSELECT set:\033[0m");
-    for (auto const &[prod, set] : select_set_view()) {
+    for (auto const &[prod, set] : make_select_set_view()) {
         std::println("    {}: {},", prod, set);
     }
 
-    auto map = ll1_parse_table();
+    auto map = compute_ll1_parse_table();
     std::println("\033[36mLL(1) parsing table:\033[0m");
     std::print("    ");
     for (auto const &terminal : terminals_) {
@@ -277,19 +277,19 @@ void Grammar::summary() const
     }
 }
 
-bool Grammar::is_epsilon(Symbol_string const &str) const
+bool Grammar::is_epsilon(SymbolString const &str) const
 {
     return str.size() == 1 && str[0] == epsilon_;
 }
 
-bool Grammar::match(Symbol_string s) const
+bool Grammar::match(SymbolString s) const
 {
     assert(std::ranges::all_of(
         s, [this](auto const &s) { return terminals_.contains(s); }));
 
     s.push_back(eol);
-    Symbol_string t{eol, begin_}; // Acts as a stack
-    auto ll1t = ll1_parse_table();
+    SymbolString t{eol, begin_}; // Acts as a stack
+    auto ll1t = compute_ll1_parse_table();
     while (!t.empty()) {
         // std::println("t={}  {}=s", t, s);
         if (terminals_.contains(t.back()) || t.back() == eol) {
@@ -319,10 +319,10 @@ bool Grammar::match(Symbol_string s) const
     return true;
 }
 
-LL1_parse_table Grammar::ll1_parse_table() const
+LL1ParseTable Grammar::compute_ll1_parse_table() const
 {
-    LL1_parse_table table;
-    for (auto const &[prod, set] : select_set_view()) {
+    LL1ParseTable table;
+    for (auto const &[prod, set] : make_select_set_view()) {
         for (auto const &terminal : set) {
             if (table[prod.from].contains(terminal))
                 throw std::runtime_error{"Not a LL(1) grammar"};
@@ -355,7 +355,7 @@ Grammar Grammar::from_file(std::filesystem::path const &p)
 
         auto from = (tokens | std::views::take(1)).front();
         auto tos = tokens | std::views::drop(2) | std::views::split("|") |
-                   std::ranges::to<std::vector<Symbol_string>>();
+                   std::ranges::to<std::vector<SymbolString>>();
         r.from = from;
         r.tos = tos;
 
@@ -365,14 +365,14 @@ Grammar Grammar::from_file(std::filesystem::path const &p)
     return {prods, ep};
 }
 
-Symbol_set const &Grammar::select(Single_production_handle const &handle) const
+SymbolSet const &Grammar::select(SingleProductionHandle const &handle) const
 {
     return select_set_.at(handle);
 }
 
-bool Grammar::match_with_recursive_descending(Symbol_string str) const
+bool Grammar::match_with_recursive_descending(SymbolString str) const
 {
-    auto const &tbl = ll1_parse_table();
+    auto const &tbl = compute_ll1_parse_table();
     auto it = str.begin();
     auto token = [this, &it, &str](Symbol const &symbol) {
         // std::println("Go into {}", symbol);
@@ -395,7 +395,7 @@ bool Grammar::match_with_recursive_descending(Symbol_string str) const
                                return token(s);
                            return functions.at(s)();
                        });
-            // Another implemetation not using std::ranges::allof.
+            // Another implemetation not using std::ranges::all_of.
             // if (!tbl.at(nonterminal).contains(*it)) {
             //     return false;
             // }

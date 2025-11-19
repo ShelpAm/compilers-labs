@@ -29,7 +29,7 @@ int main()
 
         auto from = (tokens | std::views::take(1)).front();
         auto tos = tokens | std::views::drop(2) | std::views::split("|") |
-                   std::ranges::to<std::vector<Symbol_string>>();
+                   std::ranges::to<std::vector<SymbolString>>();
         r.from = from;
         r.tos = tos;
 

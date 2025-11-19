@@ -11,8 +11,8 @@ TEST(Grammar, SimpleTest)
     for (auto const &s : ns)
         ASSERT_TRUE(g.is_nullable(s));
 
-    using Set = std::unordered_map<Symbol, Symbol_set>;
-    auto const first_set = Set{{"S", {"d", "a", "e", "b", "#"}},
+    using set = std::unordered_map<Symbol, SymbolSet>;
+    auto const first_set = set{{"S", {"d", "a", "e", "b", "#"}},
                                {"H", {"e", "#"}},
                                {"K", {"d", "#"}},
                                {"L", {"e"}},
@@ -20,7 +20,7 @@ TEST(Grammar, SimpleTest)
     for (auto const &[k, v] : first_set)
         ASSERT_TRUE(g.first(k) == v);
 
-    auto const follow_set = Set{{"H", {"$", "0", "f"}},
+    auto const follow_set = set{{"H", {"$", "0", "f"}},
                                 {"L", {"$", "e", "0", "a", "d", "b"}},
                                 {"M", {"$", "0", "e"}},
                                 {"K", {"e", "0", "$"}},
@@ -38,7 +38,7 @@ TEST(Grammar, SimpleTest)
     M -> K | b L M
     */
     auto const select_set =
-        std::unordered_map<Single_production_handle, Symbol_set>{
+        std::unordered_map<SingleProductionHandle, SymbolSet>{
             {{.from{"S"}, .index = 0}, {"$", "0", "d", "b", "e"}},
             {{.from{"S"}, .index = 1}, {"a"}},
 
