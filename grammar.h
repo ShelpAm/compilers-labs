@@ -149,7 +149,7 @@ class Grammar {
 
     [[nodiscard]] SelectSetView make_select_set_view() const;
 
-    void add_production(Production r);
+    void add_production(Production p);
 
     void build_terminals();
 

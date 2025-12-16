@@ -39,6 +39,13 @@ int main()
     Grammar g(prods, ep);
     g.summary();
 
+    std::println("Input expression you want to test if matched:");
+    std::string expr;
+    std::getline(std::cin, expr);
+    auto str =
+        expr | std::views::split(' ') | to_sv | std::ranges::to<SymbolString>();
+    std::println("Symbol String: {}", str);
+    std::println("Matched: {}", g.match(str));
     // std::println("{}",
     //              g.first_set({"L", "J", "F", " ", "I", "S", " ", "S", "B"}));
 }

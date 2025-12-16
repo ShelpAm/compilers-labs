@@ -23,11 +23,11 @@ Grammar::Grammar(std::vector<Production> prods, Symbol epsilon)
     build();
 }
 
-void Grammar::add_production(Production r)
+void Grammar::add_production(Production p)
 {
-    nonterminals_.insert(r.from); // All r.from are considered as nonterminals,
+    nonterminals_.insert(p.from); // All r.from are considered as nonterminals,
                                   // and other symbols are considered terminal.
-    productions_[r.from].append_range(std::move(r.tos));
+    productions_[p.from].append_range(std::move(p.tos));
 }
 
 void Grammar::build()
@@ -41,14 +41,14 @@ void Grammar::build()
     build_select_set();
 }
 
-bool Grammar::is_nullable(Symbol const &s) const
+bool Grammar::is_nullable(Symbol const &sym) const
 {
-    return nullables_.contains(s);
+    return nullables_.contains(sym);
 }
 
-SymbolSet const &Grammar::first(Symbol const &s) const
+SymbolSet const &Grammar::first(Symbol const &sym) const
 {
-    return first_set_.at(s);
+    return first_set_.at(sym);
 }
 
 SymbolSet Grammar::first(SymbolString const &str) const
@@ -82,9 +82,9 @@ SymbolSet Grammar::first(SymbolString const &str) const
     return res;
 }
 
-SymbolSet const &Grammar::follow(Symbol const &s) const
+SymbolSet const &Grammar::follow(Symbol const &sym) const
 {
-    return follow_set_.at(s);
+    return follow_set_.at(sym);
 }
 
 void Grammar::build_nullable_set()
@@ -111,15 +111,15 @@ void Grammar::build_nullable_set()
     }
 
     while (!que.empty()) {
-        auto s = que.front();
+        auto sym = que.front();
         que.pop();
 
-        if (nullables_.contains(s)) {
+        if (nullables_.contains(sym)) {
             continue;
         }
-        nullables_.insert(s);
+        nullables_.insert(sym);
 
-        for (auto const &[edge, count] : dep_map[s]) {
+        for (auto const &[edge, count] : dep_map[sym]) {
             auto const &[from, index] = edge;
             auto left = nullable_cnt[from][index] -= count;
             if (left == 0)
@@ -142,15 +142,15 @@ void Grammar::build_first_set()
                 if (is_epsilon(to)) { // Ignore epsilon
                     continue;
                 }
-                for (auto const &symbol : to) {
+                for (auto const &sym : to) {
                     auto prev_size = first_set_[from].size();
                     first_set_[from].insert_range(
-                        terminals_.contains(symbol)
-                            ? std::unordered_set{symbol}
-                            : extract_epsilon(first_set_[symbol]));
+                        terminals_.contains(sym)
+                            ? std::unordered_set{sym}
+                            : extract_epsilon(first_set_[sym]));
                     auto cur_size = first_set_[from].size();
                     changed |= prev_size != cur_size;
-                    if (!nullables_.contains(symbol))
+                    if (!nullables_.contains(sym))
                         break;
                 }
             }
@@ -250,6 +250,8 @@ void Grammar::build_terminals()
 
 void Grammar::summary() const
 {
+    std::println("\033[36mNon-terminals\033[0m: {}", nonterminals_);
+    std::println("\033[36mTerminals\033[0m: {}", terminals_);
     std::println("\033[36mNullable set\033[0m: {}", nullables_);
     std::println("\033[36mFIRST set\033[0m: {}", first_set_);
     std::println("\033[36mFOLLOW set\033[0m: {}", follow_set_);
@@ -284,8 +286,12 @@ bool Grammar::is_epsilon(SymbolString const &str) const
 
 bool Grammar::match(SymbolString s) const
 {
-    assert(std::ranges::all_of(
-        s, [this](auto const &s) { return terminals_.contains(s); }));
+    for (auto const &sym : s) {
+        if (!terminals_.contains(sym)) {
+            throw std::invalid_argument{
+                std::format("Input contains non-terminal '{}'", sym)};
+        }
+    }
 
     s.push_back(eol);
     SymbolString t{eol, begin_}; // Acts as a stack
