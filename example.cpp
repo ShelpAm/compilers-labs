@@ -6,6 +6,7 @@
 #include <nondeterminstic-finite-automaton.h>
 #include <parser/parser.h>
 #include <print>
+#include <semantic/semantic-analyzer.h>
 
 TEST(Automaton, Basic)
 {
@@ -48,6 +49,21 @@ TEST(AST, Basic)
     auto prog = parser.parse_program();
     ASSERT_TRUE(prog);
     prog->dump(std::cout);
+}
+
+TEST(Sematic, Basic)
+{
+    Lexer lexer("system64.hlvm");
+    Diagnostics diags;
+
+    Parser parser(lexer, diags);
+
+    auto prog = parser.parse_program();
+    ASSERT_TRUE(prog);
+
+    semantic::SemanticAnalyzer analyzer(&diags);
+    analyzer.analyze(*prog);
+    analyzer.summary();
 }
 
 int main(int argc, char **argv)

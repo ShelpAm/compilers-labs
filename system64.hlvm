@@ -1,8 +1,13 @@
 int main() {
+
+    int subroutine() {
+
+    }
+
     string s = "wxh lhp";
     int a = 3 + 9 + 1;
     int b = 4.3123;
     int c = a + getchar();
-    print();
+    print(c);
     return 0;
 }

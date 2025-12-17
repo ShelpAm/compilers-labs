@@ -1,6 +1,13 @@
 #pragma once
+#include <cassert>
 #include <iostream>
 // #include <ostream>
+
+namespace semantic {
+
+class SemanticAnalyzer;
+
+}
 
 namespace ast {
 
@@ -14,6 +21,8 @@ class Node {
     virtual ~Node() = default;
 
     virtual void dump(std::ostream &os, int indent = 0) const = 0;
+
+    virtual void accept([[maybe_unused]] semantic::SemanticAnalyzer &sa) const;
 
   protected:
     static void make_indent(std::ostream &os, int n)

@@ -3,6 +3,12 @@
 #include <lex/token.h>
 #include <memory>
 
+namespace semantic {
+
+class SemanticAnalyzer;
+
+}
+
 class Parser;
 
 namespace ast {
@@ -18,6 +24,23 @@ class VariableDeclaration : public Declaration {
   public:
     void dump(std::ostream &os, int indent) const override;
 
+    void accept(semantic::SemanticAnalyzer &sa) const override;
+
+    auto &&name() const
+    {
+        return name_;
+    }
+
+    auto &&type() const
+    {
+        return type_;
+    }
+
+    auto &&init() const
+    {
+        return init_;
+    }
+
   private:
     TokenKind type_;
     std::string name_;
@@ -29,6 +52,23 @@ class FunctionDeclaration : public Declaration {
 
   public:
     void dump(std::ostream &os, int indent) const override;
+
+    void accept(semantic::SemanticAnalyzer &sa) const override;
+
+    auto &&name() const
+    {
+        return name_;
+    }
+
+    auto &&return_type() const
+    {
+        return return_type_;
+    }
+
+    auto &&body() const
+    {
+        return body_;
+    }
 
   private:
     TokenKind return_type_;

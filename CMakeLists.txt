@@ -14,6 +14,7 @@ target_sources(hlvm
     PRIVATE
         grammar.cpp
         ast/ast.cpp
+        ast/node.cpp
         ast/decl.cpp
         lex/lexer.cpp
         parser/parser.cpp
@@ -33,4 +34,8 @@ target_link_libraries(example
         hlvm
         spdlog::spdlog
         gtest::gtest
+)
+target_link_libraries(example
+    PRIVATE
+        stdc++exp
 )

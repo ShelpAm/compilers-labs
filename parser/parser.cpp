@@ -1,5 +1,7 @@
 #include <parser/parser.h>
 
+#include <stacktrace>
+
 using namespace ast;
 
 Token const &Parser::peek() const
@@ -17,6 +19,7 @@ bool Parser::expect(TokenKind kind)
     if (!peek().is(kind)) {
         diags_.error("{}: expected '{}', got '{}'", peek().source_location,
                      to_string(kind), peek().value);
+        diags_.error("Stacktrace: {}", std::stacktrace::current());
         return false;
     }
     return true;
@@ -150,6 +153,9 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
     default: {
         auto stmt = std::make_unique<ast::ExpressionStatement>();
         stmt->expr_ = parse_expression();
+        if (!stmt->expr_)
+            return nullptr;
+
         if (!expect_and_consume(TokenKind::semicolon))
             return nullptr;
         return stmt;
@@ -236,6 +242,7 @@ ast::ExpressionPtr Parser::try_parse_unary_expr()
     return try_parse_postfix_expr();
 }
 
+// xyz()
 ast::ExpressionPtr Parser::try_parse_postfix_expr()
 {
     auto call = std::make_unique<CallExpression>();
@@ -244,19 +251,36 @@ ast::ExpressionPtr Parser::try_parse_postfix_expr()
         return nullptr;
 
     while (true) {
-        if (peek().is(TokenKind::l_paren)) {
+        switch (peek().kind) {
+        case TokenKind::l_paren: {
             consume();
+
+            // Parses arguments list
+            bool first_time{true};
+            while (peek().is_not(TokenKind::r_paren)) {
+                if (!first_time && !expect_and_consume(TokenKind::comma))
+                    return nullptr;
+
+                auto arg = parse_expression();
+                if (!arg)
+                    return nullptr;
+                call->arguments_.push_back(std::move(arg));
+
+                if (first_time)
+                    first_time = false;
+            }
+
             if (!expect_and_consume(TokenKind::r_paren))
                 return nullptr;
 
             auto old = std::exchange(call, std::make_unique<CallExpression>());
             call->callee_ = std::move(old);
-            continue;
+            break;
         }
-        break;
+        default:
+            return std::move(call->callee_);
+        }
     }
-
-    return std::move(call->callee_);
 }
 
 ast::ExpressionPtr Parser::parse_primary_expression()
@@ -292,9 +316,6 @@ ast::ExpressionPtr Parser::parse_primary_expression()
     }
     default:
         expect_true([](auto) { return false; }, "primary expression");
-        // diags_.error("{}: expected 'expression', got '{}'",
-        // tok.source_location, tok.value);
-        consume();
         return nullptr;
     }
 }

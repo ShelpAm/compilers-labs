@@ -1,13 +1,21 @@
 #pragma once
 #include <ast/node.h>
 #include <memory>
+#include <semantic/type.h>
 #include <vector>
 
 class Parser;
 
 namespace ast {
 
-class Expression : public Node {};
+class Expression : public Node {
+  public:
+    // TODO: Does nothing, implement after.
+    void accept(semantic::SemanticAnalyzer &sa) const override {}
+
+  protected:
+    semantic::Type *type;
+};
 using ExpressionPtr = std::unique_ptr<Expression>;
 
 class PrimaryExpression : public Expression {};
@@ -92,13 +100,13 @@ class CallExpression : public PostfixExpression {
         make_indent(os, indent + 1);
         os << "Arguments:\n";
         for (auto const &arg : arguments_) {
-            arg.dump(os, indent + 2);
+            arg->dump(os, indent + 2);
         }
     }
 
   private:
     ExpressionPtr callee_;
-    std::vector<Expression> arguments_;
+    std::vector<ExpressionPtr> arguments_;
 };
 
 class UnaryOperationExpr : public Expression {

@@ -4,6 +4,7 @@
 #include <diagnostics.h>
 #include <lex/lexer.h>
 #include <source_location>
+#include <stacktrace>
 
 class Parser {
   public:
@@ -31,6 +32,7 @@ class Parser {
         if (!pred(peek().kind)) {
             diags_.error("{}: expected '{}', got '{}'", peek().source_location,
                          what, peek().value);
+            diags_.error("Stacktrace: {}", std::stacktrace::current());
             return false;
         }
         return true;

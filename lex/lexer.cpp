@@ -159,6 +159,9 @@ void Lexer::lex_operator(Token &result)
     case '=':
         result.kind = TokenKind::equal;
         break;
+    case ',':
+        result.kind = TokenKind::comma;
+        break;
     default:
         result.kind = TokenKind::unknown;
     }

@@ -1,6 +1,7 @@
-#include <ast/stmt.h>
-
 #include <ast/decl.h>
+
+#include <ast/stmt.h>
+#include <semantic/semantic-analyzer.h>
 
 void ast::VariableDeclaration::dump(std::ostream &os, int indent) const
 {
@@ -20,6 +21,11 @@ void ast::VariableDeclaration::dump(std::ostream &os, int indent) const
     }
 }
 
+void ast::VariableDeclaration::accept(semantic::SemanticAnalyzer &sa) const
+{
+    sa.visit(*this);
+}
+
 void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
 {
     make_indent(os, indent);
@@ -36,4 +42,9 @@ void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
         os << "Body:\n";
         body_->dump(os, indent + 2);
     }
+}
+
+void ast::FunctionDeclaration::accept(semantic::SemanticAnalyzer &sa) const
+{
+    sa.visit(*this);
 }

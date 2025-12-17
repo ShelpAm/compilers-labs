@@ -2,10 +2,17 @@
 #include <ast/decl.h>
 #include <vector>
 
+namespace semantic {
+
+class SemanticAnalyzer;
+
+}
+
 namespace ast {
 
 class Program : public Node {
     friend class ::Parser;
+    friend class semantic::SemanticAnalyzer;
 
   public:
     Program();

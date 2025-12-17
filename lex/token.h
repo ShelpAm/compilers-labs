@@ -30,6 +30,7 @@ enum class TokenKind : unsigned char {
     float_val,
     comment,
     semicolon,
+    comma,
 
     // Operators
     plus,
@@ -77,6 +78,8 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
         return "comment";
     case semicolon:
         return "semicolon";
+    case comma:
+        return "comma";
 
     case plus:
         return "plus";
@@ -132,6 +135,11 @@ struct Token {
     [[nodiscard]] bool is(TokenKind k) const
     {
         return kind == k;
+    }
+
+    [[nodiscard]] bool is_not(TokenKind k) const
+    {
+        return !is(k);
     }
 
     TokenKind kind{TokenKind::unknown};

@@ -1,6 +1,7 @@
 #include <ast/ast.h>
 #include <cassert>
 #include <lex/lexer.h>
+#include <semantic/semantic-analyzer.h>
 
 namespace ast {
 
@@ -51,6 +52,16 @@ void DeclarationStatement::dump(std::ostream &os, int indent) const
     os << "DeclarationStatement\n";
     if (decl_)
         decl_->dump(os, indent + 1);
+}
+
+void CompoundStatement::accept(semantic::SemanticAnalyzer &sa) const
+{
+    sa.visit(*this);
+}
+
+void DeclarationStatement::accept(semantic::SemanticAnalyzer &sa) const
+{
+    sa.visit(*this);
 }
 
 } // namespace ast
