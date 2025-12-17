@@ -150,7 +150,8 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
     default: {
         auto stmt = std::make_unique<ast::ExpressionStatement>();
         stmt->expr_ = parse_expression();
-        expect_and_consume(TokenKind::semicolon);
+        if (!expect_and_consume(TokenKind::semicolon))
+            return nullptr;
         return stmt;
     }
     }
@@ -223,15 +224,39 @@ ast::ExpressionPtr Parser::try_parse_mult_div_mod()
 
 ast::ExpressionPtr Parser::try_parse_unary_expr()
 {
-    // if (auto tok = peek();
-    //     tok.is(TokenKind::plus) || tok.is(TokenKind::minus)) {
-    //     auto unary = std::make_unique<ast::UnaryOperationExpr>();
-    //     unary->op_ = consume().value;
-    //     unary->expr_ = try_parse_unary_expr();
-    //     return unary;
-    // }
+    // Recursively consumes unary operators
+    if (auto tok = peek();
+        tok.is(TokenKind::plus) || tok.is(TokenKind::minus)) {
+        auto unary = std::make_unique<ast::UnaryOperationExpr>();
+        unary->op_ = consume().value;
+        unary->expr_ = try_parse_unary_expr();
+        return unary;
+    }
 
-    return parse_primary_expression();
+    return try_parse_postfix_expr();
+}
+
+ast::ExpressionPtr Parser::try_parse_postfix_expr()
+{
+    auto call = std::make_unique<CallExpression>();
+    call->callee_ = parse_primary_expression();
+    if (!call->callee_)
+        return nullptr;
+
+    while (true) {
+        if (peek().is(TokenKind::l_paren)) {
+            consume();
+            if (!expect_and_consume(TokenKind::r_paren))
+                return nullptr;
+
+            auto old = std::exchange(call, std::make_unique<CallExpression>());
+            call->callee_ = std::move(old);
+            continue;
+        }
+        break;
+    }
+
+    return std::move(call->callee_);
 }
 
 ast::ExpressionPtr Parser::parse_primary_expression()

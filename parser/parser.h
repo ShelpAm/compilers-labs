@@ -19,6 +19,7 @@ class Parser {
     ast::ExpressionPtr try_parse_add_minus();
     ast::ExpressionPtr try_parse_mult_div_mod();
     ast::ExpressionPtr try_parse_unary_expr();
+    ast::ExpressionPtr try_parse_postfix_expr();
     ast::ExpressionPtr parse_primary_expression();
 
     [[nodiscard]] Token const &peek() const;

@@ -1,11 +1,8 @@
 int main() {
-    ;
-    1.23;
-    2.3.5;
-    # string s = "wxh lhp";
-    # int a = 3 + 9 + 1;
-    # int b = 4.3.123;
-    # int c = a;
-    # print(c);
-    # return 0;
+    string s = "wxh lhp";
+    int a = 3 + 9 + 1;
+    int b = 4.3123;
+    int c = a + getchar();
+    print();
+    return 0;
 }

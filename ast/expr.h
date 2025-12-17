@@ -74,7 +74,9 @@ class IdentifierExpr : public PrimaryExpression {
     std::string name_;
 };
 
-class CallExpr : public Expression {
+class PostfixExpression : public Expression {};
+
+class CallExpression : public PostfixExpression {
     friend class ::Parser;
 
   public:
@@ -82,8 +84,11 @@ class CallExpr : public Expression {
     {
         make_indent(os, indent);
         os << "CallExpr\n";
+
         make_indent(os, indent + 1);
-        os << "Callee: " << callee_ << '\n';
+        os << "Callee: " << '\n';
+        callee_->dump(os, indent + 2);
+
         make_indent(os, indent + 1);
         os << "Arguments:\n";
         for (auto const &arg : arguments_) {
@@ -92,7 +97,7 @@ class CallExpr : public Expression {
     }
 
   private:
-    std::string callee_;
+    ExpressionPtr callee_;
     std::vector<Expression> arguments_;
 };
 
