@@ -1,9 +1,7 @@
 #pragma once
-#include <filesystem>
 #include <format>
-#include <fstream>
+#include <string>
 #include <string_view>
-#include <unordered_map>
 
 struct SourceLocation {
     std::size_t row;
@@ -110,7 +108,25 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
     return "unknown";
 }
 
-TokenKind identifier_to_token_kind(std::string_view s) noexcept;
+inline bool is_type(TokenKind kind)
+{
+    using enum TokenKind;
+    return kind == keyword_int || kind == keyword_float ||
+           kind == keyword_string;
+}
+
+inline bool is_keyword(TokenKind kind)
+{
+    switch (kind) {
+    case TokenKind::keyword_int:
+    case TokenKind::keyword_float:
+    case TokenKind::keyword_string:
+    case TokenKind::keyword_return:
+        return true;
+    default:
+        return false;
+    }
+}
 
 struct Token {
     [[nodiscard]] bool is(TokenKind k) const
@@ -121,30 +137,4 @@ struct Token {
     TokenKind kind{TokenKind::unknown};
     std::string value;
     SourceLocation source_location{};
-};
-
-class Lexer {
-  public:
-    Lexer(std::filesystem::path const &path);
-
-    Token const &peek() const;
-    Token lex();
-
-  private:
-    void lex_comment(Token &result);
-    void lex_numeric(Token &result);
-
-    // This also filters out keywords.
-    void lex_identifier(Token &result);
-
-    void lex_string(Token &result);
-    void lex_semicolon(Token &result);
-    void lex_operator(Token &result);
-
-    char read_char();
-    char peek_char();
-
-    std::ifstream ifs_;
-    SourceLocation source_location_;
-    mutable std::optional<Token> peeked_token_;
 };

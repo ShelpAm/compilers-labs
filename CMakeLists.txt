@@ -13,9 +13,10 @@ add_library(hlvm STATIC)
 target_sources(hlvm
     PRIVATE
         grammar.cpp
-        ast.cpp
-        lexer.cpp
-        parser.cpp
+        ast/ast.cpp
+        ast/decl.cpp
+        lex/lexer.cpp
+        parser/parser.cpp
 )
 target_include_directories(hlvm
     PUBLIC

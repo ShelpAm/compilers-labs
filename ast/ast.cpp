@@ -1,6 +1,6 @@
-#include <ast.h>
+#include <ast/ast.h>
 #include <cassert>
-#include <lexer.h>
+#include <lex/lexer.h>
 
 namespace ast {
 
@@ -14,10 +14,16 @@ void Program::dump(std::ostream &os, int indent) const
         d->dump(os, indent + 1);
 }
 
+void EmptyStatement::dump(std::ostream &os, int indent) const
+{
+    make_indent(os, indent);
+    os << "EmptyStatement\n";
+}
+
 void CompoundStatement::dump(std::ostream &os, int indent) const
 {
     make_indent(os, indent);
-    os << "StatementSequence\n";
+    os << "CompoundStatement\n";
 
     for (auto const &stmt : stmts_)
         stmt->dump(os, indent + 1);
@@ -27,9 +33,8 @@ void ExpressionStatement::dump(std::ostream &os, int indent) const
 {
     make_indent(os, indent);
     os << "ExpressionStatement\n";
-
-    // TODO: Implement this
-    // expr_->dump(os, indent + 1);
+    if (expr_)
+        expr_->dump(os, indent + 1);
 }
 
 void ReturnStatement::dump(std::ostream &os, int indent) const

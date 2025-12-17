@@ -1,10 +1,10 @@
-#include <ast.h>
+#include <ast/ast.h>
 #include <determinstic-finite-automaton.h>
 #include <grammar.h>
 #include <gtest/gtest.h>
-#include <lexer.h>
+#include <lex/lexer.h>
 #include <nondeterminstic-finite-automaton.h>
-#include <parser.h>
+#include <parser/parser.h>
 #include <print>
 
 TEST(Automaton, Basic)
@@ -33,17 +33,9 @@ TEST(Lexer, Basic)
         if (token.is(TokenKind::eof)) {
             break;
         }
-        std::println(R"(Read token of type "{:12}" in row {} column {}: {})",
-                     to_string(token.kind), token.source_location.row,
-                     token.source_location.column, token.value);
+        std::println(R"(token: type: {:12} in {}: {})", to_string(token.kind),
+                     token.source_location, token.value);
     }
-}
-
-TEST(Grammar, Basic)
-{
-    auto grammar = Grammar::from_file("test/simple.g");
-
-    grammar.summary();
 }
 
 TEST(AST, Basic)

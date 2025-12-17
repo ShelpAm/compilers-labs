@@ -1,4 +1,4 @@
-#include <lexer.h>
+#include <lex/lexer.h>
 
 TokenKind identifier_to_token_kind(std::string_view s) noexcept
 {
@@ -36,78 +36,11 @@ Token const &Lexer::peek() const
 
 Token Lexer::lex()
 {
-    if (peeked_token_.has_value()) {
-        auto ret = std::move(*peeked_token_);
-        peeked_token_.reset();
-        return ret;
+    Token tok;
+    while ((tok = lex_one()).is(TokenKind::comment)) {
+        // Skips comments
     }
-
-    char ch; // Current char
-
-    // Reads out spaces and newlines, as they are not any part of token.
-    while (true) {
-        ch = peek_char();
-        if (std::isspace(ch) != 0) {
-            read_char();
-        }
-        else {
-            break;
-        }
-    }
-
-    Token result;
-    result.source_location = source_location_;
-
-    if (ch == EOF) {
-        result.kind = TokenKind::eof;
-        return result;
-    }
-
-    // clang-format off
-        switch (ch) {
-        case '#':
-            lex_comment(result);
-            break;
-        case '0': case '1': case '2': case '3': case '4':
-        case '5': case '6': case '7': case '8': case '9':
-            lex_numeric(result);
-            break;
-        case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G':
-        case 'H': case 'I': case 'J': case 'K': case 'L': case 'M': case 'N':
-        case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U':
-        case 'V': case 'W': case 'X': case 'Y': case 'Z':
-        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
-        case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
-        case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u':
-        case 'v': case 'w': case 'x': case 'y': case 'z':
-        case '_':
-            lex_identifier(result);
-            break;
-        case '\"':
-            lex_string(result);
-            break;
-        case '+':
-        case '-':
-        case '*':
-        case '/':
-        case '%':
-        case '(':
-        case ')':
-        case '{':
-        case '}':
-        case ',':
-        case '=':
-            lex_operator(result);
-            break;
-        case ';':
-            lex_semicolon(result);
-            break;
-        default:
-            result.kind = TokenKind::unknown;
-            result.value = read_char();
-        }
-    // clang-format on
-    return result;
+    return tok;
 }
 
 void Lexer::lex_comment(Token &result)
@@ -257,4 +190,80 @@ char Lexer::peek_char()
         return EOF;
     }
     return static_cast<char>(ch);
+}
+
+Token Lexer::lex_one()
+{
+    if (peeked_token_.has_value()) {
+        auto ret = std::move(*peeked_token_);
+        peeked_token_.reset();
+        return ret;
+    }
+
+    char ch; // Current char
+
+    // Reads out spaces and newlines, as they are not any part of token.
+    while (true) {
+        ch = peek_char();
+        if (std::isspace(ch) != 0) {
+            read_char();
+        }
+        else {
+            break;
+        }
+    }
+
+    Token result;
+    result.source_location = source_location_;
+
+    if (ch == EOF) {
+        result.kind = TokenKind::eof;
+        return result;
+    }
+
+    // clang-format off
+        switch (ch) {
+        case '#':
+            lex_comment(result);
+            break;
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+            lex_numeric(result);
+            break;
+        case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G':
+        case 'H': case 'I': case 'J': case 'K': case 'L': case 'M': case 'N':
+        case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': case 'U':
+        case 'V': case 'W': case 'X': case 'Y': case 'Z':
+        case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
+        case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
+        case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u':
+        case 'v': case 'w': case 'x': case 'y': case 'z':
+        case '_':
+            lex_identifier(result);
+            break;
+        case '\"':
+            lex_string(result);
+            break;
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case '%':
+        case '(':
+        case ')':
+        case '{':
+        case '}':
+        case ',':
+        case '=':
+            lex_operator(result);
+            break;
+        case ';':
+            lex_semicolon(result);
+            break;
+        default:
+            result.kind = TokenKind::unknown;
+            result.value = read_char();
+        }
+    // clang-format on
+    return result;
 }
