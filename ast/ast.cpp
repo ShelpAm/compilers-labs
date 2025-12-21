@@ -54,12 +54,12 @@ void DeclarationStatement::dump(std::ostream &os, int indent) const
         decl_->dump(os, indent + 1);
 }
 
-void CompoundStatement::accept(semantic::SemanticAnalyzer &sa) const
+void CompoundStatement::accept(semantic::SemanticAnalyzer &sa)
 {
     sa.visit(*this);
 }
 
-void DeclarationStatement::accept(semantic::SemanticAnalyzer &sa) const
+void DeclarationStatement::accept(semantic::SemanticAnalyzer &sa)
 {
     sa.visit(*this);
 }

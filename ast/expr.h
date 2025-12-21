@@ -11,10 +11,20 @@ namespace ast {
 class Expression : public Node {
   public:
     // TODO: Does nothing, implement after.
-    void accept(semantic::SemanticAnalyzer &sa) const override {}
+    void accept(semantic::SemanticAnalyzer &_) override {}
 
-  protected:
-    semantic::Type *type;
+    void set_type(semantic::Type *type)
+    {
+        type_ = type;
+    }
+
+    semantic::Type const &type()
+    {
+        return *type_;
+    }
+
+  private:
+    semantic::Type *type_;
 };
 using ExpressionPtr = std::unique_ptr<Expression>;
 
@@ -30,6 +40,8 @@ class IntegerLiteralExpr : public PrimaryExpression {
         make_indent(os, indent);
         os << "IntegerLiteral(" << value_ << ")\n";
     }
+
+    void accept(semantic::SemanticAnalyzer &sa) override;
 
     [[nodiscard]] std::int_least64_t value() const
     {

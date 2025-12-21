@@ -16,8 +16,13 @@ target_sources(hlvm
         ast/ast.cpp
         ast/node.cpp
         ast/decl.cpp
+        ast/expr.cpp
         lex/lexer.cpp
         parser/parser.cpp
+)
+target_link_libraries(hlvm
+    PUBLIC
+        stdc++exp
 )
 target_include_directories(hlvm
     PUBLIC
@@ -35,7 +40,24 @@ target_link_libraries(example
         spdlog::spdlog
         gtest::gtest
 )
-target_link_libraries(example
+
+add_executable(grammar-test)
+target_sources(grammar-test
     PRIVATE
-        stdc++exp
+        test/grammar.cpp
+)
+target_link_libraries(grammar-test
+    PRIVATE
+        hlvm
+        gtest::gtest
+)
+
+add_executable(automaton-test)
+target_sources(automaton-test
+    PRIVATE
+        test/automaton-test.cpp
+)
+target_link_libraries(automaton-test
+    PRIVATE
+        hlvm
 )

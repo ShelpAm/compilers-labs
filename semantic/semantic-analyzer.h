@@ -1,6 +1,7 @@
 #pragma once
 #include <ast/ast.h>
 #include <diagnostics.h>
+#include <semantic/symbol.h>
 #include <semantic/type.h>
 #include <unordered_map>
 
@@ -8,7 +9,13 @@ namespace semantic {
 
 class SemanticAnalyzer {
   public:
-    SemanticAnalyzer(Diagnostics *diags) : diags_(diags) {}
+    SemanticAnalyzer(Diagnostics *diags)
+        : types_{Type{.size = 4, .typekind = TypeKind::integer_type},
+                 Type{.size = 4, .typekind = TypeKind::float_type},
+                 Type{.size = 0, .typekind = TypeKind::string_type}},
+          diags_(diags)
+    {
+    }
 
     void analyze(ast::Program &prog)
     {
@@ -62,7 +69,15 @@ class SemanticAnalyzer {
         visit(*ds.declaration());
     }
 
+    void visit(ast::IntegerLiteralExpr &ie)
+    {
+        // TODO: implement me
+        // ie.set_type(typetable_.at("int")->symbol());
+    }
+
   private:
+    std::vector<Symbol> symbols_;
+    std::vector<Type> types_;
     std::unordered_map<std::string, ast::Declaration const *> typetable_;
     Diagnostics *diags_;
 };

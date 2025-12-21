@@ -241,6 +241,9 @@ SelectSetView Grammar::make_select_set_view() const
 
 void Grammar::build_terminals()
 {
+    // eol is a terminal.
+    terminals_.insert(eol);
+
     for (auto const &[_, tos] : productions_)
         for (auto const &to : tos)
             for (auto const &s : to)

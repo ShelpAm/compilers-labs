@@ -1,13 +1,13 @@
+# int f(int n) { if (n == 0) return 1; if (n == 1) return 1; return f(n - 1) + f(n - 2); }
+
+int add(int a, int b) {
+    return a + b;
+}
+
 int main() {
-
-    int subroutine() {
-
-    }
-
     string s = "wxh lhp";
-    int a = 3 + 9 + 1;
-    int b = 4.3123;
-    int c = a + getchar();
+    int a = 3 + 9 / 2 * (1 - 2);
+    int c = f(4);
     print(c);
     return 0;
 }

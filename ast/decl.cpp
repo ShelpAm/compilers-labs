@@ -21,7 +21,7 @@ void ast::VariableDeclaration::dump(std::ostream &os, int indent) const
     }
 }
 
-void ast::VariableDeclaration::accept(semantic::SemanticAnalyzer &sa) const
+void ast::VariableDeclaration::accept(semantic::SemanticAnalyzer &sa)
 {
     sa.visit(*this);
 }
@@ -37,6 +37,13 @@ void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
     make_indent(os, indent + 1);
     os << "Name: " << name_ << "\n";
 
+    make_indent(os, indent + 1);
+    os << "Parameters:\n";
+    for (auto const &[type, name] : parameters_) {
+        make_indent(os, indent + 2);
+        os << type << ' ' << name << '\n';
+    }
+
     if (body_) {
         make_indent(os, indent + 1);
         os << "Body:\n";
@@ -44,7 +51,7 @@ void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
     }
 }
 
-void ast::FunctionDeclaration::accept(semantic::SemanticAnalyzer &sa) const
+void ast::FunctionDeclaration::accept(semantic::SemanticAnalyzer &sa)
 {
     sa.visit(*this);
 }

@@ -62,7 +62,33 @@ std::unique_ptr<ast::Declaration> Parser::parse_declaration()
 
     // -------- function declaration --------
     if (peek().is(l_paren)) {
+        auto fn = std::make_unique<ast::FunctionDeclaration>();
+
         consume(); // (
+
+        // Parses parameters list
+        bool first_time{true};
+        while (peek().is_not(TokenKind::r_paren)) {
+            if (!first_time && !expect_and_consume(TokenKind::comma))
+                return nullptr;
+
+            // Type
+            auto can_be_type = [](auto k) {
+                return is_type(k) || k == identifier;
+            };
+            if (!expect_true(can_be_type, "type"))
+                return nullptr;
+
+            auto param_type_tok = consume();
+            std::string param_name;
+            if (!peek().is(r_paren) && !peek().is(comma)) { // param name
+                param_name = consume().value;
+            }
+            fn->parameters_.push_back({param_type_tok.value, param_name});
+
+            if (first_time)
+                first_time = false;
+        }
 
         if (!expect_and_consume(r_paren))
             return nullptr;
@@ -71,7 +97,6 @@ std::unique_ptr<ast::Declaration> Parser::parse_declaration()
         if (!body)
             return nullptr;
 
-        auto fn = std::make_unique<ast::FunctionDeclaration>();
         fn->return_type_ = type_tok.kind;
         fn->name_ = name_tok.value;
         fn->body_ = std::move(body);

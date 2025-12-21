@@ -22,7 +22,7 @@ class Node {
 
     virtual void dump(std::ostream &os, int indent = 0) const = 0;
 
-    virtual void accept([[maybe_unused]] semantic::SemanticAnalyzer &sa) const;
+    virtual void accept([[maybe_unused]] semantic::SemanticAnalyzer &sa);
 
   protected:
     static void make_indent(std::ostream &os, int n)
