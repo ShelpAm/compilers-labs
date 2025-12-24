@@ -10,9 +10,11 @@ void ast::NodeVisitor::visit(ExpressionStatement &es)
 
 void ast::NodeVisitor::visit(ReturnStatement &rs) {}
 
+void ast::NodeVisitor::visit(IfStatement &is) {}
+
 void ast::NodeVisitor::visit(CallExpression &ce) {}
 
-void ast::NodeVisitor::visit(IdentifierExpr &)
+void ast::NodeVisitor::visit(IdentifierExpr &ie)
 {
     // default: do nothing
 }

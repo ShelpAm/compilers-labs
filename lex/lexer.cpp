@@ -5,10 +5,9 @@ TokenKind identifier_to_token_kind(std::string_view s) noexcept
     using enum TokenKind;
 
     static std::unordered_map<std::string_view, TokenKind> const map{
-        {"int", keyword_int},
-        {"float", keyword_float},
-        {"string", keyword_string},
-        {"return", keyword_return},
+        {"int", keyword_int},       {"float", keyword_float},
+        {"string", keyword_string}, {"return", keyword_return},
+        {"if", keyword_if},         {"else", keyword_else},
     };
 
     if (map.contains(s))
@@ -157,7 +156,13 @@ void Lexer::lex_operator(Token &result)
         result.kind = TokenKind::r_brace;
         break;
     case '=':
-        result.kind = TokenKind::equal;
+        if (peek_char() == '=') { // equalequal ==
+            result.value += read_char();
+            result.kind = TokenKind::equalequal;
+        }
+        else {
+            result.kind = TokenKind::equal;
+        }
         break;
     case ',':
         result.kind = TokenKind::comma;

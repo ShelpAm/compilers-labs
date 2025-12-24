@@ -16,8 +16,10 @@ class Parser {
   private:
     std::unique_ptr<ast::Declaration> parse_declaration();
     std::unique_ptr<ast::Statement> parse_statement();
+    std::unique_ptr<ast::Statement> parse_if_statement();
     std::unique_ptr<ast::CompoundStatement> parse_compound_statement();
     ast::ExpressionPtr parse_expression();
+    ast::ExpressionPtr try_parse_equalequal();
     ast::ExpressionPtr try_parse_add_minus();
     ast::ExpressionPtr try_parse_mult_div_mod();
     ast::ExpressionPtr try_parse_unary_expr();
@@ -39,7 +41,17 @@ class Parser {
         return true;
     }
     bool expect_and_consume(TokenKind);
+    [[nodiscard]] Token const &previous_token() const
+    {
+        if (!previous_token_.has_value()) {
+            throw std::runtime_error{"previous token unavailble before the "
+                                     "first call to `consume()`"};
+        }
+        return *previous_token_;
+    }
 
+    // Unavailble before the first call to `consume()`
+    std::optional<Token> previous_token_;
     Lexer &lexer_;
     Diagnostics &diags_;
 };

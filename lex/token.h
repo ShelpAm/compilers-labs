@@ -16,6 +16,19 @@ struct std::formatter<SourceLocation> : std::formatter<std::string_view> {
     }
 };
 
+struct SourceRange {
+    SourceLocation begin;
+    SourceLocation end;
+};
+
+template <>
+struct std::formatter<SourceRange> : std::formatter<std::string_view> {
+    static auto format(SourceRange const &range, format_context &ctx)
+    {
+        return std::format_to(ctx.out(), "{}~{}", range.begin, range.end);
+    }
+};
+
 enum class TokenKind : unsigned char {
     unknown,
 
@@ -23,6 +36,8 @@ enum class TokenKind : unsigned char {
     keyword_float,
     keyword_string,
     keyword_return,
+    keyword_if,
+    keyword_else,
 
     identifier,
     integer_val,
@@ -39,6 +54,7 @@ enum class TokenKind : unsigned char {
     slash,
     percent,
     equal,
+    equalequal,
 
     l_brace,
     r_brace,
@@ -65,6 +81,10 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
         return "keyword_string";
     case keyword_return:
         return "keyword_return";
+    case keyword_if:
+        return "keyword_if";
+    case keyword_else:
+        return "keyword_else";
 
     case identifier:
         return "identifier";
@@ -93,6 +113,8 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
         return "percent";
     case equal:
         return "equal";
+    case equalequal:
+        return "equalequal";
 
     case l_brace:
         return "l_brace";
@@ -125,6 +147,8 @@ inline bool is_keyword(TokenKind kind)
     case TokenKind::keyword_float:
     case TokenKind::keyword_string:
     case TokenKind::keyword_return:
+    case TokenKind::keyword_if:
+    case TokenKind::keyword_else:
         return true;
     default:
         return false;

@@ -15,7 +15,6 @@ class Frame {
 
     std::optional<std::string> lookup_rvalue(std::string const &var)
     {
-        spdlog::debug("Looking up rvalue: {}", var);
         auto *p = this;
         while (p != nullptr) {
             auto it = std::ranges::find(p->memory_, var,
@@ -60,6 +59,10 @@ class Frame {
 
     void dump(std::ostream &os, int indent = 0)
     {
+        if (indent > 1024) {
+            spdlog::error("Stack depth exceeds maximum, 1024. Exiting.");
+            std::exit(1);
+        }
         make_indent(os, indent);
         std::println(os, "Frame:");
         make_indent(os, indent + 1);

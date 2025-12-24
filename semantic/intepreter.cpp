@@ -6,6 +6,7 @@
 #include <semantic/context.h>
 #include <semantic/frame.h>
 #include <semantic/intepreter.h>
+#include <semantic/return-signal.h>
 #include <semantic/symbol.h>
 #include <spdlog/spdlog.h>
 #include <utility>
@@ -67,9 +68,12 @@ void semantic::Intepreter::visit(ast::Program &p)
     assert(ft->decl);
     assert(ft->decl->body());
     enter_subframe();
-    ft->decl->body()->accept(*this);
-    dump(std::cout); // TODO: Only for test
-    leave_frame();
+    try {
+        ft->decl->body()->accept(*this);
+    }
+    catch (ReturnSignal const &e) {
+        ;
+    }
 }
 
 void semantic::Intepreter::visit(ast::VariableDeclaration &vd)
@@ -96,9 +100,11 @@ void semantic::Intepreter::visit(ast::CompoundStatement &cs)
 
 void semantic::Intepreter::visit(ast::DeclarationStatement &ds)
 {
+    spdlog::debug("{}: Executing declaration statement", ds.source_range());
     ds.declaration()->accept(*this);
 }
 
+// Leaving frame is responsibility of internal function body, not call itself.
 void semantic::Intepreter::visit(ast::CallExpression &ce)
 {
     // Check if is a callable function
@@ -109,12 +115,20 @@ void semantic::Intepreter::visit(ast::CallExpression &ce)
         last_visited_.reset();
         return;
     }
+
+    if (callee_p->name() == "print") {
+        spdlog::info("Program printing: {}", eval(ce.arguments().front()));
+        return;
+    }
+
     auto *sym = ctx_->symbol_table_.lookup(callee_p->name());
     if (sym == nullptr || sym->type_ptr->typekind != TypeKind::function_type) {
         diags_->error("Callee '{}' not a function", callee_p->name());
         return;
     }
 
+    spdlog::debug("{}: Executing function '{}'", ce.source_range(),
+                  callee_p->name());
     enter_subframe();
     auto *ft = static_cast<FunctionType *>(sym->type_ptr);
     auto *decl = ft->decl;
@@ -122,14 +136,21 @@ void semantic::Intepreter::visit(ast::CallExpression &ce)
     spdlog::debug("Setting parameters");
     for (auto const &[arg, param] :
          std::views::zip(ce.arguments(), decl->parameters())) {
-        spdlog::debug("Setting parameter '{}'", param.name);
         curr_frame_->new_variable(param.name, eval(arg));
+        spdlog::debug("Setting parameter {}={}", param.name,
+                      *curr_frame_->lookup_rvalue(param.name));
     }
     spdlog::debug("Parameters set");
-    dump(std::cout);
+    // dump(std::cout);
     // Invokes the function
-    decl->body()->accept(*this);
-    leave_frame();
+    try {
+        decl->body()->accept(*this);
+    }
+    catch (ReturnSignal const &e) {
+        // Doing nothing, because it's a signal to leave function
+        e;
+    }
+    // leave_frame();
 }
 
 void semantic::Intepreter::visit(ast::IntegerLiteralExpr &ie)
@@ -184,10 +205,12 @@ void semantic::Intepreter::visit(ast::BinaryOperationExpr &boe)
         if (op == "%") {
             return lhs % rhs;
         }
+        if (op == "==") {
+            return lhs == rhs ? 1LL : 0LL;
+        }
         throw std::runtime_error("Only support 四则运算和取模");
     };
 
-    // 只支持 int + int
     last_visited_ = std::to_string(execute());
 }
 
@@ -195,7 +218,8 @@ void semantic::Intepreter::visit(ast::IdentifierExpr &ie)
 {
     auto p = curr_frame_->lookup_rvalue(ie.name());
     if (!p.has_value()) {
-        diags_->error("Undefined variable '{}'", ie.name());
+        diags_->error("{}: Undefined variable '{}'", ie.source_range(),
+                      ie.name());
         curr_frame_->dump(std::cout);
         last_visited_.reset();
         return;
@@ -205,8 +229,26 @@ void semantic::Intepreter::visit(ast::IdentifierExpr &ie)
 
 void semantic::Intepreter::visit(ast::ReturnStatement &rs)
 {
-    rs.returned_value()->accept(*this);
-    last_returned_ = last_visited_;
+    last_returned_ = eval(rs.returned_value());
+    leave_frame();
+    throw ReturnSignal{};
+}
+
+void semantic::Intepreter::visit(ast::IfStatement &is)
+{
+    spdlog::debug("Executing if statement");
+    if (eval(is.condition()) != "0") {
+        spdlog::debug("True hit");
+        if (is.true_branch()) {
+            is.true_branch()->accept(*this);
+        }
+    }
+    else {
+        spdlog::debug("False hit");
+        if (is.false_branch()) {
+            is.false_branch()->accept(*this);
+        }
+    }
 }
 
 semantic::Intepreter::Intepreter(Context *ctx, Diagnostics *diags)

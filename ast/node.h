@@ -1,5 +1,6 @@
 #pragma once
 #include <cassert>
+#include <lex/token.h>
 #include <ostream>
 
 inline void make_indent(std::ostream &os, int n)
@@ -25,6 +26,25 @@ class Node {
     virtual void dump(std::ostream &os, int indent = 0) const = 0;
 
     virtual void accept(NodeVisitor &v) = 0;
+
+    [[nodiscard]] SourceRange source_range() const
+    {
+        return source_range_;
+    }
+
+  protected:
+    void set_source_begin(SourceLocation sb)
+    {
+        source_range_.begin = sb;
+    }
+
+    void set_source_end(SourceLocation se)
+    {
+        source_range_.end = se;
+    }
+
+  private:
+    SourceRange source_range_{};
 };
 
 } // namespace ast

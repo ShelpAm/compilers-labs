@@ -11,6 +11,7 @@ class CompoundStatement;
 class DeclarationStatement;
 class ExpressionStatement;
 class ReturnStatement;
+class IfStatement;
 
 class IdentifierExpr;
 class UnaryOperationExpr;
@@ -40,6 +41,7 @@ class NodeVisitor {
     virtual void visit(DeclarationStatement &) = 0;
     virtual void visit(ExpressionStatement &);
     virtual void visit(ReturnStatement &);
+    virtual void visit(IfStatement &);
 
     virtual void visit(IdentifierExpr &);
     virtual void visit(UnaryOperationExpr &);

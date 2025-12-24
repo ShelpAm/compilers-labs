@@ -20,7 +20,9 @@ class Intepreter : public ast::NodeVisitor {
 
     void visit(ast::CompoundStatement &cs) override;
     void visit(ast::DeclarationStatement &ds) override;
-    void visit(ast::ReturnStatement &rs) override;
+    void visit(ast::ReturnStatement &rs) override; // Temporary solution for
+    // jump out from function in advance: using exception
+    void visit(ast::IfStatement &is) override;
 
     void visit(ast::CallExpression &ce) override;
     void visit(ast::UnaryOperationExpr &uoe) override;
@@ -45,6 +47,7 @@ class Intepreter : public ast::NodeVisitor {
     std::string eval(ast::Expression *expr)
     {
         expr->accept(*this);
+        spdlog::debug("Evaluated result: {}", last_visited_.value());
         return last_visited_.value();
     }
 

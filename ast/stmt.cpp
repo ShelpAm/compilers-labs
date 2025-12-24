@@ -41,6 +41,35 @@ void ast::DeclarationStatement::dump(std::ostream &os, int indent) const
         decl_->dump(os, indent + 1);
 }
 
+void ast::IfStatement::dump(std::ostream &os, int indent) const
+{
+    make_indent(os, indent);
+    os << "IfStatement\n";
+
+    make_indent(os, indent + 1);
+    os << "Condition:\n";
+
+    if (condition_) {
+        condition_->dump(os, indent + 2);
+    }
+    else {
+        make_indent(os, indent + 2);
+        os << "NO CONDITION PROVIDED\n";
+    }
+
+    make_indent(os, indent + 1);
+    os << "TrueBranch:\n";
+    if (true_branch_) {
+        true_branch_->dump(os, indent + 2);
+    }
+
+    make_indent(os, indent + 1);
+    os << "FalseBranch:\n";
+    if (false_branch_) {
+        false_branch_->dump(os, indent + 2);
+    }
+}
+
 void ast::EmptyStatement::accept(NodeVisitor & /*unused*/) {}
 
 void ast::CompoundStatement::accept(NodeVisitor &v)
@@ -59,6 +88,11 @@ void ast::ReturnStatement::accept(NodeVisitor &v)
 }
 
 void ast::ExpressionStatement::accept(NodeVisitor &v)
+{
+    v.visit(*this);
+}
+
+void ast::IfStatement::accept(NodeVisitor &v)
 {
     v.visit(*this);
 }
