@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ast/node-visitor.h>
 #include <ast/node.h>
 
 #include <ast/decl.h>

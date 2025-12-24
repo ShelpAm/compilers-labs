@@ -1,5 +1,6 @@
 #include <ast/decl.h>
 
+#include <ast/node-visitor.h>
 #include <ast/stmt.h>
 #include <semantic/semantic-analyzer.h>
 
@@ -9,7 +10,7 @@ void ast::VariableDeclaration::dump(std::ostream &os, int indent) const
     os << "VariableDeclaration\n";
 
     make_indent(os, indent + 1);
-    os << "Type: " << to_string(type_) << "\n";
+    os << "Type: " << type_.value << "\n";
 
     make_indent(os, indent + 1);
     os << "Name: " << name_ << "\n";
@@ -21,9 +22,9 @@ void ast::VariableDeclaration::dump(std::ostream &os, int indent) const
     }
 }
 
-void ast::VariableDeclaration::accept(semantic::SemanticAnalyzer &sa)
+void ast::VariableDeclaration::accept(NodeVisitor &v)
 {
-    sa.visit(*this);
+    v.visit(*this);
 }
 
 void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
@@ -32,7 +33,7 @@ void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
     os << "FunctionDeclaration\n";
 
     make_indent(os, indent + 1);
-    os << "ReturnType: " << to_string(return_type_) << "\n";
+    os << "ReturnType: " << return_type_.value << "\n";
 
     make_indent(os, indent + 1);
     os << "Name: " << name_ << "\n";
@@ -51,7 +52,7 @@ void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
     }
 }
 
-void ast::FunctionDeclaration::accept(semantic::SemanticAnalyzer &sa)
+void ast::FunctionDeclaration::accept(NodeVisitor &v)
 {
-    sa.visit(*this);
+    v.visit(*this);
 }

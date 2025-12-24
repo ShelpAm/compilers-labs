@@ -6,7 +6,10 @@
 #include <nondeterminstic-finite-automaton.h>
 #include <parser/parser.h>
 #include <print>
+#include <semantic/context.h>
+#include <semantic/intepreter.h>
 #include <semantic/semantic-analyzer.h>
+#include <spdlog/spdlog.h>
 
 TEST(Automaton, Basic)
 {
@@ -51,7 +54,7 @@ TEST(AST, Basic)
     prog->dump(std::cout);
 }
 
-TEST(Sematic, Basic)
+TEST(Semantic, Basic)
 {
     Lexer lexer("system64.hlvm");
     Diagnostics diags;
@@ -61,13 +64,20 @@ TEST(Sematic, Basic)
     auto prog = parser.parse_program();
     ASSERT_TRUE(prog);
 
-    semantic::SemanticAnalyzer analyzer(&diags);
-    analyzer.analyze(*prog);
+    semantic::Context ctx;
+
+    semantic::SemanticAnalyzer analyzer(&ctx, &diags);
+    prog->accept(analyzer);
     analyzer.summary();
+
+    semantic::Intepreter inte(&ctx, &diags);
+    prog->accept(inte);
+    inte.dump(std::cout);
 }
 
 int main(int argc, char **argv)
 {
+    spdlog::set_level(spdlog::level::debug);
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

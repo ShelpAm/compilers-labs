@@ -8,23 +8,22 @@ class Parser;
 
 namespace ast {
 
+class NodeVisitor;
+
 class Expression : public Node {
   public:
-    // TODO: Does nothing, implement after.
-    void accept(semantic::SemanticAnalyzer &_) override {}
-
-    void set_type(semantic::Type *type)
+    void set_type(semantic::BasicType *type)
     {
         type_ = type;
     }
 
-    semantic::Type const &type()
+    semantic::BasicType const &type()
     {
         return *type_;
     }
 
   private:
-    semantic::Type *type_;
+    semantic::BasicType *type_;
 };
 using ExpressionPtr = std::unique_ptr<Expression>;
 
@@ -41,11 +40,16 @@ class IntegerLiteralExpr : public PrimaryExpression {
         os << "IntegerLiteral(" << value_ << ")\n";
     }
 
-    void accept(semantic::SemanticAnalyzer &sa) override;
+    void accept(NodeVisitor &v) override;
 
-    [[nodiscard]] std::int_least64_t value() const
+    [[nodiscard]] auto value() const
     {
         return std::stoll(value_);
+    }
+
+    [[nodiscard]] std::string const &strvalue() const
+    {
+        return value_;
     }
 
   private:
@@ -62,6 +66,13 @@ class FloatLiteralExpr : public PrimaryExpression {
         os << "FloatLiteral(" << value_ << ")\n";
     }
 
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] std::string const &value() const
+    {
+        return value_;
+    }
+
   private:
     std::string value_;
 };
@@ -76,6 +87,13 @@ class StringLiteralExpr : public PrimaryExpression {
         os << "StringLiteral(" << value_ << ")\n";
     }
 
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] std::string const &value() const
+    {
+        return value_;
+    }
+
   private:
     std::string value_;
 };
@@ -88,6 +106,13 @@ class IdentifierExpr : public PrimaryExpression {
     {
         make_indent(os, indent);
         os << "IdentifierExpr(" << name_ << ")\n";
+    }
+
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] std::string const &name() const
+    {
+        return name_;
     }
 
   private:
@@ -116,6 +141,18 @@ class CallExpression : public PostfixExpression {
         }
     }
 
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] ExpressionPtr const &callee() const
+    {
+        return callee_;
+    }
+
+    [[nodiscard]] std::vector<ExpressionPtr> const &arguments() const
+    {
+        return arguments_;
+    }
+
   private:
     ExpressionPtr callee_;
     std::vector<ExpressionPtr> arguments_;
@@ -132,6 +169,18 @@ class UnaryOperationExpr : public Expression {
         make_indent(os, indent + 1);
         os << std::format("Operator: {}", op_) << '\n';
         expr_->dump(os, indent + 1);
+    }
+
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] std::string const &op() const
+    {
+        return op_;
+    }
+
+    [[nodiscard]] ExpressionPtr const &expr() const
+    {
+        return expr_;
     }
 
   private:
@@ -151,48 +200,23 @@ class BinaryOperationExpr : public Expression {
         os << std::format("Operator: {}", op_) << '\n';
         lhs_->dump(os, indent + 1);
         rhs_->dump(os, indent + 1);
-        // make_indent(os, indent + 1);
-        // os << "Deduced Value: " << value() << '\n';
     }
 
-    [[nodiscard]] std::int_least64_t value() const
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] std::string const &op() const
     {
-        std::int_least64_t lhs;
-        if (auto *pl = dynamic_cast<BinaryOperationExpr *>(lhs_.get())) {
-            lhs = pl->value();
-        }
-        else if (auto *pl2 = dynamic_cast<IntegerLiteralExpr *>(lhs_.get())) {
-            lhs = pl2->value();
-        }
-        else {
-            throw std::exception();
-        }
-        std::int_least64_t rhs;
-        if (auto *p = dynamic_cast<BinaryOperationExpr *>(rhs_.get())) {
-            rhs = p->value();
-        }
-        else if (auto *p1 = dynamic_cast<IntegerLiteralExpr *>(rhs_.get())) {
-            rhs = p1->value();
-        }
-        else {
-            throw std::exception();
-        }
-        if (op_ == "+") {
-            return lhs + rhs;
-        }
-        if (op_ == "-") {
-            return lhs - rhs;
-        }
-        if (op_ == "*") {
-            return lhs * rhs;
-        }
-        if (op_ == "/") {
-            return lhs / rhs;
-        }
-        if (op_ == "%") {
-            return lhs % rhs;
-        }
-        throw std::exception();
+        return op_;
+    }
+
+    [[nodiscard]] ExpressionPtr const &lhs() const
+    {
+        return lhs_;
+    }
+
+    [[nodiscard]] ExpressionPtr const &rhs() const
+    {
+        return rhs_;
     }
 
   private:

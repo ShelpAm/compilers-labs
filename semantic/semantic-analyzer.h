@@ -1,84 +1,33 @@
 #pragma once
 #include <ast/ast.h>
-#include <diagnostics.h>
-#include <semantic/symbol.h>
-#include <semantic/type.h>
 #include <unordered_map>
+
+class Diagnostics;
 
 namespace semantic {
 
-class SemanticAnalyzer {
+struct Context;
+
+class SemanticAnalyzer : public ast::NodeVisitor {
   public:
-    SemanticAnalyzer(Diagnostics *diags)
-        : types_{Type{.size = 4, .typekind = TypeKind::integer_type},
-                 Type{.size = 4, .typekind = TypeKind::float_type},
-                 Type{.size = 0, .typekind = TypeKind::string_type}},
-          diags_(diags)
-    {
-    }
+    SemanticAnalyzer(Context *ctx, Diagnostics *diags);
 
-    void analyze(ast::Program &prog)
-    {
-        for (auto const &decl : prog.decls_) {
-            visit(*decl);
-        }
-    }
+    /// @brief Analyzes a program
+    void visit(ast::Program &prog) override;
 
-    void summary() const
-    {
-        for (auto const &[name, decl] : typetable_) {
-            std::println("{} ->", name);
-            decl->dump(std::cout, 1);
-        }
-    }
+    void summary() const;
 
-    void visit(ast::Node &node)
-    {
-        node.accept(*this);
-    }
-
-    void visit(ast::VariableDeclaration const &vd)
-    {
-        if (typetable_.contains(vd.name())) {
-            diags_->error("Variable re-declaration error: {}", vd.name());
-            return;
-        }
-        typetable_.insert({vd.name(), &vd});
-    }
-
-    void visit(ast::FunctionDeclaration const &fd)
-    {
-        if (typetable_.contains(fd.name())) {
-            diags_->error("Function re-declaration error: {}", fd.name());
-            return;
-        }
-        typetable_.insert({fd.name(), &fd});
-
-        visit(*fd.body());
-    }
-
-    void visit(ast::CompoundStatement const &cs)
-    {
-        for (auto const &stmt : cs.statments()) {
-            visit(*stmt);
-        }
-    }
-
-    void visit(ast::DeclarationStatement const &ds)
-    {
-        visit(*ds.declaration());
-    }
-
-    void visit(ast::IntegerLiteralExpr &ie)
-    {
-        // TODO: implement me
-        // ie.set_type(typetable_.at("int")->symbol());
-    }
+    void visit(ast::VariableDeclaration &vd) override;
+    void visit(ast::FunctionDeclaration &fd) override;
+    void visit(ast::CompoundStatement &cs) override;
+    void visit(ast::DeclarationStatement &ds) override;
+    void visit(ast::IntegerLiteralExpr &ie) override;
+    void visit(ast::FloatLiteralExpr &fe) override;
+    void visit(ast::StringLiteralExpr &se) override;
 
   private:
-    std::vector<Symbol> symbols_;
-    std::vector<Type> types_;
-    std::unordered_map<std::string, ast::Declaration const *> typetable_;
+    BasicType *find_type_by_name(std::string_view name);
+    Context *ctx_;
     Diagnostics *diags_;
 };
 

@@ -1,19 +1,64 @@
 #pragma once
+// #include <ast/ast.h>
+#include <memory>
 #include <string>
+#include <vector>
+
+namespace ast {
+
+class FunctionDeclaration;
+
+}
 
 namespace semantic {
 
 enum class TypeKind : unsigned char {
+    function_type,
+
     integer_type,
     float_type,
     string_type,
-    // class_type
+    // pointer_type, // Temporarily unsupported
+    // class_type // User defined // Temporarily unsupported
 };
 
-struct Type {
+inline std::string to_string(TypeKind k)
+{
+    switch (k) {
+    case TypeKind::function_type:
+        return "function_type";
+    case TypeKind::integer_type:
+        return "integer_type";
+    case TypeKind::float_type:
+        return "float_type";
+    case TypeKind::string_type:
+        return "string_type";
+    default:
+        return "unknown";
+    }
+}
+
+struct BasicType {
   public:
+    constexpr auto operator<=>(BasicType const &) const noexcept = default;
+
     std::size_t size;
     TypeKind typekind;
 };
+
+// Size must be the same as PointerType
+struct FunctionType : public BasicType {
+    constexpr auto operator<=>(FunctionType const &) const noexcept = default;
+
+    BasicType *return_type;
+    std::vector<BasicType *> parameter_types;
+    ast::FunctionDeclaration *decl;
+};
+
+// Temporarily unsupported
+// struct UserDefinedType : public BasicType {
+//      std::string name;
+//      std::vector<BasicType *,,, fieldname> fields;
+// };
 
 } // namespace semantic

@@ -15,53 +15,9 @@ void Program::dump(std::ostream &os, int indent) const
         d->dump(os, indent + 1);
 }
 
-void EmptyStatement::dump(std::ostream &os, int indent) const
+void Program::accept(NodeVisitor &v)
 {
-    make_indent(os, indent);
-    os << "EmptyStatement\n";
-}
-
-void CompoundStatement::dump(std::ostream &os, int indent) const
-{
-    make_indent(os, indent);
-    os << "CompoundStatement\n";
-
-    for (auto const &stmt : stmts_)
-        stmt->dump(os, indent + 1);
-}
-
-void ExpressionStatement::dump(std::ostream &os, int indent) const
-{
-    make_indent(os, indent);
-    os << "ExpressionStatement\n";
-    if (expr_)
-        expr_->dump(os, indent + 1);
-}
-
-void ReturnStatement::dump(std::ostream &os, int indent) const
-{
-    make_indent(os, indent);
-    os << "ReturnStatement\n";
-    if (value_)
-        value_->dump(os, indent + 1);
-}
-
-void DeclarationStatement::dump(std::ostream &os, int indent) const
-{
-    make_indent(os, indent);
-    os << "DeclarationStatement\n";
-    if (decl_)
-        decl_->dump(os, indent + 1);
-}
-
-void CompoundStatement::accept(semantic::SemanticAnalyzer &sa)
-{
-    sa.visit(*this);
-}
-
-void DeclarationStatement::accept(semantic::SemanticAnalyzer &sa)
-{
-    sa.visit(*this);
+    v.visit(*this);
 }
 
 } // namespace ast

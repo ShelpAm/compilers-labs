@@ -15,14 +15,20 @@ target_sources(hlvm
         grammar.cpp
         ast/ast.cpp
         ast/node.cpp
+        ast/node-visitor.cpp
         ast/decl.cpp
         ast/expr.cpp
+        ast/stmt.cpp
         lex/lexer.cpp
         parser/parser.cpp
+        semantic/semantic-analyzer.cpp
+        semantic/intepreter.cpp
 )
 target_link_libraries(hlvm
     PUBLIC
         stdc++exp
+    PRIVATE
+        spdlog::spdlog
 )
 target_include_directories(hlvm
     PUBLIC

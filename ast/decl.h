@@ -41,7 +41,7 @@ class VariableDeclaration : public Declaration {
   public:
     void dump(std::ostream &os, int indent) const override;
 
-    void accept(semantic::SemanticAnalyzer &sa) override;
+    void accept(NodeVisitor &v) override;
 
     auto &&name() const
     {
@@ -59,7 +59,7 @@ class VariableDeclaration : public Declaration {
     }
 
   private:
-    TokenKind type_;
+    Token type_;
     std::string name_;
     std::unique_ptr<Expression> init_;
 };
@@ -70,7 +70,7 @@ class FunctionDeclaration : public Declaration {
   public:
     void dump(std::ostream &os, int indent) const override;
 
-    void accept(semantic::SemanticAnalyzer &sa) override;
+    void accept(NodeVisitor &v) override;
 
     auto &&name() const
     {
@@ -87,10 +87,20 @@ class FunctionDeclaration : public Declaration {
         return body_;
     }
 
+    auto &&parameters() const
+    {
+        return parameters_;
+    }
+
   private:
-    TokenKind return_type_;
+    struct Parameter {
+        std::string type;
+        std::string name;
+    };
+
+    Token return_type_;
     std::string name_;
-    std::vector<std::pair<std::string, std::string>> parameters_;
+    std::vector<Parameter> parameters_;
     std::unique_ptr<CompoundStatement> body_;
 };
 

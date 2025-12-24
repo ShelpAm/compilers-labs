@@ -1,15 +1,17 @@
 #pragma once
 #include <cassert>
-#include <iostream>
-// #include <ostream>
+#include <ostream>
 
-namespace semantic {
-
-class SemanticAnalyzer;
-
+inline void make_indent(std::ostream &os, int n)
+{
+    // std::println(std::cerr, "Printing indent: {}", n);
+    for (int i = 0; i < n; ++i)
+        os << "    ";
 }
 
 namespace ast {
+
+class NodeVisitor;
 
 class Node {
   public:
@@ -22,15 +24,7 @@ class Node {
 
     virtual void dump(std::ostream &os, int indent = 0) const = 0;
 
-    virtual void accept([[maybe_unused]] semantic::SemanticAnalyzer &sa);
-
-  protected:
-    static void make_indent(std::ostream &os, int n)
-    {
-        // std::println(std::cerr, "Printing indent: {}", n);
-        for (int i = 0; i < n; ++i)
-            os << "    ";
-    }
+    virtual void accept(NodeVisitor &v) = 0;
 };
 
 } // namespace ast

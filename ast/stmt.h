@@ -1,23 +1,27 @@
 #pragma once
-#include <ast/ast.h>
 #include <ast/decl.h>
 #include <ast/expr.h>
+#include <ast/node.h>
 #include <memory>
 #include <vector>
 
+class Parser;
+
 namespace ast {
 
-class Statement : public Node {
-  public:
-    // TODO: Does nothing, implement after.
-    void accept(semantic::SemanticAnalyzer &sa) override {}
-};
+class Declaration;
+class Expression;
+class NodeVisitor;
+
+class Statement : public Node {};
 
 class EmptyStatement : public Statement {
     friend class ::Parser;
 
   public:
     void dump(std::ostream &os, int indent = 0) const override;
+
+    void accept(NodeVisitor &v) override;
 };
 
 class CompoundStatement : public Statement {
@@ -26,9 +30,9 @@ class CompoundStatement : public Statement {
   public:
     void dump(std::ostream &os, int indent = 0) const override;
 
-    void accept(semantic::SemanticAnalyzer &sa) override;
+    void accept(NodeVisitor &v) override;
 
-    auto &&statments() const
+    [[nodiscard]] auto &&statments() const
     {
         return stmts_;
     }
@@ -43,8 +47,15 @@ class ReturnStatement : public Statement {
   public:
     void dump(std::ostream &os, int indent = 0) const override;
 
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] ExpressionPtr const &returned_value() const
+    {
+        return returned_value_;
+    }
+
   private:
-    std::unique_ptr<Expression> value_;
+    std::unique_ptr<Expression> returned_value_;
 };
 
 class DeclarationStatement : public Statement {
@@ -53,9 +64,9 @@ class DeclarationStatement : public Statement {
   public:
     void dump(std::ostream &os, int indent = 0) const override;
 
-    void accept(semantic::SemanticAnalyzer &sa) override;
+    void accept(NodeVisitor &v) override;
 
-    auto &&declaration() const
+    [[nodiscard]] auto &&declaration() const
     {
         return decl_;
     }
@@ -69,6 +80,13 @@ class ExpressionStatement : public Statement {
 
   public:
     void dump(std::ostream &os, int indent = 0) const override;
+
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] std::unique_ptr<Expression> const &expr() const
+    {
+        return expr_;
+    }
 
   private:
     std::unique_ptr<Expression> expr_;

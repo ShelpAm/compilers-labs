@@ -6,6 +6,7 @@
 #include <source_location>
 #include <stacktrace>
 
+/// @brief Does grammar analysis
 class Parser {
   public:
     Parser(Lexer &lexer, Diagnostics &diags) : lexer_(lexer), diags_(diags) {}

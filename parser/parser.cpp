@@ -97,7 +97,7 @@ std::unique_ptr<ast::Declaration> Parser::parse_declaration()
         if (!body)
             return nullptr;
 
-        fn->return_type_ = type_tok.kind;
+        fn->return_type_ = type_tok;
         fn->name_ = name_tok.value;
         fn->body_ = std::move(body);
         return fn;
@@ -117,7 +117,7 @@ std::unique_ptr<ast::Declaration> Parser::parse_declaration()
         return nullptr;
 
     auto var = std::make_unique<ast::VariableDeclaration>();
-    var->type_ = type_tok.kind;
+    var->type_ = type_tok;
     var->name_ = name_tok.value;
     var->init_ = std::move(init);
     return var;
@@ -151,8 +151,8 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
         consume(); // consume 'return'
 
         if (!peek().is(TokenKind::semicolon)) {
-            stmt->value_ = parse_expression();
-            if (!stmt->value_)
+            stmt->returned_value_ = parse_expression();
+            if (!stmt->returned_value_)
                 return nullptr;
         }
 

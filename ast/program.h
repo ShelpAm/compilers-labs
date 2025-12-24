@@ -19,6 +19,14 @@ class Program : public Node {
 
     void dump(std::ostream &os, int indent = 0) const override;
 
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] std::vector<std::unique_ptr<Declaration>> const &
+    declarations() const
+    {
+        return decls_;
+    }
+
   private:
     std::vector<std::unique_ptr<Declaration>> decls_;
 };
