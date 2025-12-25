@@ -1,13 +1,13 @@
-int t = 1;
-
 int f(int n) {
     if (n == 0) return 1;
     if (n == 1) return 1;
     return f(n - 1) + f(n - 2);
 }
 
-int recurse() {
-    return recurse() + 1;
+int recurse(int a) {
+    print(a);
+    if (a == 10) return 0;
+    return recurse(a + 1) + 1;
 }
 
 int add(int a, int b) {
@@ -15,13 +15,20 @@ int add(int a, int b) {
 }
 
 int main() {
-    string s = "wxh lhp";
-    int a = 3 + 5 * (6 - 2); # 23
-    int b = 1 + 2 * (-1 - --2); # -5
-    int d = a + b * b; # 48
-    int e = add(a, b); # 18
-    int c = f(20);
-    print(c);
+    # string s = "wxh lhp";
+    # int a = 3 + 5 * (6 - 2); # 23
+    # int b = 1 + 2 * (-1 - --2); # -5
+    # int d = a + b * b; # 48
+    # int e = add(a, b); # 18
+    # int c = f(20);
+    # print(c);
 
-    return d;
+    int i = 5;
+    i[1] = 1;
+    while (i) {
+        print(i);
+        i = i - 1;
+    }
+
+    return 0;
 }

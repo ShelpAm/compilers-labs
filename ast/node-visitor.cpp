@@ -8,23 +8,18 @@ void ast::NodeVisitor::visit(ExpressionStatement &es)
     es.expr()->accept(*this);
 }
 
-void ast::NodeVisitor::visit(ReturnStatement &rs) {}
+void ast::NodeVisitor::visit(ReturnStatement & /*unused*/) {}
 
-void ast::NodeVisitor::visit(IfStatement &is) {}
+void ast::NodeVisitor::visit(IfStatement & /*unused*/) {}
 
-void ast::NodeVisitor::visit(CallExpression &ce) {}
+void ast::NodeVisitor::visit(WhileStatement & /*unused*/) {}
 
-void ast::NodeVisitor::visit(IdentifierExpr &ie)
-{
-    // default: do nothing
-}
+void ast::NodeVisitor::visit(CallExpression & /*unused*/) {}
 
-void ast::NodeVisitor::visit(UnaryOperationExpr &)
-{
-    // default: do nothing
-}
+void ast::NodeVisitor::visit(IndexExpression & /*unused*/) {}
 
-void ast::NodeVisitor::visit(BinaryOperationExpr &)
-{
-    // default: do nothing
-}
+void ast::NodeVisitor::visit(IdentifierExpr & /*unused*/) {}
+
+void ast::NodeVisitor::visit(UnaryExpression & /*unused*/) {}
+
+void ast::NodeVisitor::visit(BinaryExpression & /*unused*/) {}

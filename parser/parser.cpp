@@ -177,6 +177,8 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
     }
     case TokenKind::keyword_if:
         return parse_if_statement();
+    case TokenKind::keyword_while:
+        return parse_while_statement();
     case TokenKind::l_brace:
         return parse_compound_statement();
 
@@ -215,7 +217,36 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
 // 左结合
 ast::ExpressionPtr Parser::parse_expression()
 {
-    return try_parse_equalequal();
+    return try_parse_assignment_expr();
+}
+
+// This can be chained
+ast::ExpressionPtr Parser::try_parse_assignment_expr()
+{
+    // This must be identifier (in current stage). Checked in semantic analysis
+    // phase.
+    auto lhs = try_parse_equality_expr();
+    if (!lhs)
+        return nullptr;
+
+    if (peek().is(TokenKind::equal)) {
+        auto op_token = consume(); // =
+        auto rhs = try_parse_assignment_expr();
+        if (!rhs)
+            return nullptr;
+
+        auto expr = std::make_unique<ast::BinaryExpression>();
+        expr->lhs_ = std::move(lhs);
+        expr->op_ = op_token;
+        expr->rhs_ = std::move(rhs);
+
+        expr->set_source_begin(expr->lhs_->source_range().begin);
+        expr->set_source_end(expr->rhs_->source_range().end);
+
+        return expr;
+    }
+
+    return lhs;
 }
 
 // x [== y]
@@ -246,21 +277,23 @@ ast::ExpressionPtr Parser::parse_expression()
 //     boe->set_source_end(boe->lhs_->source_range().end);
 //     return std::move(boe->lhs_);
 // }
-ast::ExpressionPtr Parser::try_parse_equalequal()
+ast::ExpressionPtr Parser::try_parse_equality_expr()
 {
     auto lhs = try_parse_add_minus();
     if (!lhs)
         return nullptr;
 
-    while (peek().kind == TokenKind::equalequal) {
+    while (peek().is(TokenKind::equalequal) || peek().is(TokenKind::less) ||
+           peek().is(TokenKind::lessthan) || peek().is(TokenKind::more) ||
+           peek().is(TokenKind::morethan)) {
         auto op_token = consume(); // ==
         auto rhs = try_parse_add_minus();
         if (!rhs)
             return nullptr;
 
-        auto expr = std::make_unique<ast::BinaryOperationExpr>();
+        auto expr = std::make_unique<ast::BinaryExpression>();
         expr->lhs_ = std::move(lhs);
-        expr->op_ = op_token.value;
+        expr->op_ = op_token;
         expr->rhs_ = std::move(rhs);
 
         expr->set_source_begin(expr->lhs_->source_range().begin);
@@ -317,9 +350,9 @@ ast::ExpressionPtr Parser::try_parse_add_minus()
         if (!rhs)
             return nullptr;
 
-        auto expr = std::make_unique<ast::BinaryOperationExpr>();
+        auto expr = std::make_unique<ast::BinaryExpression>();
         expr->lhs_ = std::move(lhs);
-        expr->op_ = op_token.value;
+        expr->op_ = op_token;
         expr->rhs_ = std::move(rhs);
 
         expr->set_source_begin(expr->lhs_->source_range().begin);
@@ -370,12 +403,12 @@ ast::ExpressionPtr Parser::try_parse_mult_div_mod()
         case TokenKind::star:
         case TokenKind::slash:
         case TokenKind::percent: {
-            auto op = consume().value;
+            auto op = consume();
             auto rhs = try_parse_unary_expr();
             if (!rhs)
                 return nullptr;
 
-            auto bin = std::make_unique<ast::BinaryOperationExpr>();
+            auto bin = std::make_unique<ast::BinaryExpression>();
             bin->lhs_ = std::move(lhs);
             bin->op_ = op;
             bin->rhs_ = std::move(rhs);
@@ -399,7 +432,7 @@ ast::ExpressionPtr Parser::try_parse_unary_expr()
         tok.is(TokenKind::plus) || tok.is(TokenKind::minus)) {
         auto op_tok = consume();
 
-        auto unary = std::make_unique<ast::UnaryOperationExpr>();
+        auto unary = std::make_unique<ast::UnaryExpression>();
         unary->op_ = op_tok.value;
         unary->expr_ = try_parse_unary_expr();
 
@@ -487,6 +520,37 @@ ast::ExpressionPtr Parser::try_parse_postfix_expr()
             call->set_source_end(previous_token().source_location);
 
             expr = std::move(call);
+            break;
+        }
+        case TokenKind::l_bracket: {
+            consume(); // [
+
+            auto index_expr = std::make_unique<IndexExpression>();
+            index_expr->base_ = std::move(expr);
+
+            // Parses indices list
+            bool first = true;
+            while (peek().is_not(TokenKind::r_bracket)) {
+                if (!first && !expect_and_consume(TokenKind::comma))
+                    return nullptr;
+
+                auto index = parse_expression();
+                if (!index)
+                    return nullptr;
+
+                index_expr->indices_.push_back(std::move(index));
+                first = false;
+            }
+
+            if (!expect_and_consume(TokenKind::r_bracket))
+                return nullptr;
+
+            // source range：base.begin -> ']'
+            index_expr->set_source_begin(
+                index_expr->base_->source_range().begin);
+            index_expr->set_source_end(previous_token().source_location);
+
+            expr = std::move(index_expr);
             break;
         }
         default:
@@ -611,4 +675,26 @@ std::unique_ptr<ast::Statement> Parser::parse_if_statement()
 
     if_statement->set_source_end(previous_token().source_location);
     return if_statement;
+}
+
+std::unique_ptr<ast::Statement> Parser::parse_while_statement()
+{
+    auto while_statement = std::make_unique<WhileStatement>();
+    while_statement->set_source_begin(peek().source_location);
+
+    if (!expect_and_consume(TokenKind::keyword_while))
+        return nullptr;
+    if (!expect_and_consume(TokenKind::l_paren))
+        return nullptr;
+    while_statement->condition_ = parse_expression();
+    if (!while_statement->condition_)
+        return nullptr;
+    if (!expect_and_consume(TokenKind::r_paren))
+        return nullptr;
+    while_statement->body_ = parse_statement();
+    if (!while_statement->body_)
+        return nullptr;
+
+    while_statement->set_source_end(previous_token().source_location);
+    return while_statement;
 }

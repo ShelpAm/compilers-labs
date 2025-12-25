@@ -23,10 +23,11 @@ class Intepreter : public ast::NodeVisitor {
     void visit(ast::ReturnStatement &rs) override; // Temporary solution for
     // jump out from function in advance: using exception
     void visit(ast::IfStatement &is) override;
+    void visit(ast::WhileStatement &ws) override;
 
     void visit(ast::CallExpression &ce) override;
-    void visit(ast::UnaryOperationExpr &uoe) override;
-    void visit(ast::BinaryOperationExpr &boe) override;
+    void visit(ast::UnaryExpression &uoe) override;
+    void visit(ast::BinaryExpression &boe) override;
     void visit(ast::IdentifierExpr &ie) override;
     void visit(ast::IntegerLiteralExpr &ie) override;
     void visit(ast::FloatLiteralExpr &fe) override;

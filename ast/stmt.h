@@ -87,6 +87,29 @@ class IfStatement : public Statement {
     std::unique_ptr<Statement> false_branch_;
 };
 
+class WhileStatement : public Statement {
+    friend class ::Parser;
+
+  public:
+    void dump(std::ostream &os, int indent = 0) const override;
+
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] ExpressionPtr const &condition() const
+    {
+        return condition_;
+    }
+
+    [[nodiscard]] std::unique_ptr<Statement> const &body() const
+    {
+        return body_;
+    }
+
+  private:
+    std::unique_ptr<Expression> condition_;
+    std::unique_ptr<Statement> body_;
+};
+
 class DeclarationStatement : public Statement {
     friend class ::Parser;
 

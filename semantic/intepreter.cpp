@@ -168,7 +168,7 @@ void semantic::Intepreter::visit(ast::StringLiteralExpr &se)
     last_visited_ = se.value();
 }
 
-void semantic::Intepreter::visit(ast::UnaryOperationExpr &uoe)
+void semantic::Intepreter::visit(ast::UnaryExpression &uoe)
 {
     uoe.expr()->accept(*this);
     auto value = std::stoll(*last_visited_);
@@ -183,32 +183,70 @@ void semantic::Intepreter::visit(ast::UnaryOperationExpr &uoe)
     last_visited_ = std::to_string(value);
 }
 
-void semantic::Intepreter::visit(ast::BinaryOperationExpr &boe)
+void semantic::Intepreter::visit(ast::BinaryExpression &boe)
 {
-    auto lhs = std::stoll(eval(boe.lhs().get()));
+    auto *pidentifier = dynamic_cast<ast::IdentifierExpr *>(boe.lhs().get());
+    if (pidentifier == nullptr) {
+        diags_->error("{}: Left-hand side of binary operation not an "
+                      "identifier",
+                      boe.source_range());
+        last_visited_.reset();
+        return;
+    }
     auto rhs = std::stoll(eval(boe.rhs().get()));
 
     auto const &op = boe.op();
     auto execute = [&] {
-        if (op == "+") {
+        switch (op.kind) {
+        case TokenKind::plus: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
             return lhs + rhs;
         }
-        if (op == "-") {
+        case TokenKind::minus: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
             return lhs - rhs;
         }
-        if (op == "*") {
+        case TokenKind::star: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
             return lhs * rhs;
         }
-        if (op == "/") {
+        case TokenKind::slash: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
             return lhs / rhs;
         }
-        if (op == "%") {
+        case TokenKind::percent: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
             return lhs % rhs;
         }
-        if (op == "==") {
+        case TokenKind::equalequal: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
             return lhs == rhs ? 1LL : 0LL;
         }
-        throw std::runtime_error("Only support 四则运算和取模");
+        case TokenKind::less: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
+            return lhs < rhs ? 1LL : 0LL;
+        }
+        case TokenKind::lessthan: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
+            return lhs <= rhs ? 1LL : 0LL;
+        }
+        case TokenKind::more: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
+            return lhs > rhs ? 1LL : 0LL;
+        }
+        case TokenKind::morethan: {
+            auto lhs = std::stoll(eval(boe.lhs().get()));
+            return lhs >= rhs ? 1LL : 0LL;
+        }
+        case TokenKind::equal: {
+            auto *pvar = curr_frame_->lookup_lvalue(pidentifier->name());
+            *pvar = std::to_string(rhs);
+            return std::stoll(*pvar);
+        }
+        default:
+            throw std::runtime_error(
+                std::format("Unknown binary operator {}", op.value));
+        }
     };
 
     last_visited_ = std::to_string(execute());
@@ -248,6 +286,15 @@ void semantic::Intepreter::visit(ast::IfStatement &is)
         if (is.false_branch()) {
             is.false_branch()->accept(*this);
         }
+    }
+}
+
+void semantic::Intepreter::visit(ast::WhileStatement &ws)
+{
+    spdlog::debug("Executing while statement");
+    while (eval(ws.condition()) != "0") {
+        spdlog::debug("While loop iteration");
+        ws.body()->accept(*this);
     }
 }
 

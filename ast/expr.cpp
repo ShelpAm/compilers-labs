@@ -5,6 +5,7 @@ void ast::IntegerLiteralExpr::accept(NodeVisitor &v)
 {
     v.visit(*this);
 }
+
 void ast::FloatLiteralExpr::accept(NodeVisitor &v)
 {
     v.visit(*this);
@@ -25,12 +26,17 @@ void ast::CallExpression::accept(NodeVisitor &v)
     v.visit(*this);
 }
 
-void ast::UnaryOperationExpr::accept(NodeVisitor &v)
+void ast::UnaryExpression::accept(NodeVisitor &v)
 {
     v.visit(*this);
 }
 
-void ast::BinaryOperationExpr::accept(NodeVisitor &v)
+void ast::BinaryExpression::accept(NodeVisitor &v)
+{
+    v.visit(*this);
+}
+
+void ast::IndexExpression::accept(NodeVisitor &v)
 {
     v.visit(*this);
 }

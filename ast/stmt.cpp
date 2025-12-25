@@ -96,3 +96,31 @@ void ast::IfStatement::accept(NodeVisitor &v)
 {
     v.visit(*this);
 }
+
+void ast::WhileStatement::dump(std::ostream &os, int indent) const
+{
+    make_indent(os, indent);
+    os << "WhileStatement\n";
+
+    make_indent(os, indent + 1);
+    os << "Condition:\n";
+
+    if (condition_) {
+        condition_->dump(os, indent + 2);
+    }
+    else {
+        make_indent(os, indent + 2);
+        os << "NO CONDITION PROVIDED\n";
+    }
+
+    make_indent(os, indent + 1);
+    os << "Body:\n";
+    if (body_) {
+        body_->dump(os, indent + 2);
+    }
+}
+
+void ast::WhileStatement::accept(NodeVisitor &v)
+{
+    v.visit(*this);
+}

@@ -128,7 +128,7 @@ class CallExpression : public PostfixExpression {
     void dump(std::ostream &os, int indent) const override
     {
         make_indent(os, indent);
-        os << "CallExpr\n";
+        os << "CallExpression\n";
 
         make_indent(os, indent + 1);
         os << "Callee: " << '\n';
@@ -158,14 +158,51 @@ class CallExpression : public PostfixExpression {
     std::vector<ExpressionPtr> arguments_;
 };
 
-class UnaryOperationExpr : public Expression {
+class IndexExpression : public PostfixExpression {
     friend class ::Parser;
 
   public:
     void dump(std::ostream &os, int indent) const override
     {
         make_indent(os, indent);
-        os << "UnaryOperationExpr\n";
+        os << "IndexExpression\n";
+
+        make_indent(os, indent + 1);
+        os << "Base:" << '\n';
+        base_->dump(os, indent + 2);
+
+        make_indent(os, indent + 1);
+        os << "Indices:\n";
+        for (auto const &index : indices_) {
+            index->dump(os, indent + 2);
+        }
+    }
+
+    void accept(NodeVisitor &v) override;
+
+    [[nodiscard]] ExpressionPtr const &base() const
+    {
+        return base_;
+    }
+
+    [[nodiscard]] std::vector<ExpressionPtr> const &indices() const
+    {
+        return indices_;
+    }
+
+  private:
+    ExpressionPtr base_;
+    std::vector<ExpressionPtr> indices_;
+};
+
+class UnaryExpression : public Expression {
+    friend class ::Parser;
+
+  public:
+    void dump(std::ostream &os, int indent) const override
+    {
+        make_indent(os, indent);
+        os << "UnaryExpression\n";
         make_indent(os, indent + 1);
         os << std::format("Operator: {}", op_) << '\n';
         expr_->dump(os, indent + 1);
@@ -188,23 +225,23 @@ class UnaryOperationExpr : public Expression {
     ExpressionPtr expr_;
 };
 
-class BinaryOperationExpr : public Expression {
+class BinaryExpression : public Expression {
     friend class ::Parser;
 
   public:
     void dump(std::ostream &os, int indent) const override
     {
         make_indent(os, indent);
-        os << "BinaryOperationExpr\n";
+        os << "BinaryExpression\n";
         make_indent(os, indent + 1);
-        os << std::format("Operator: {}", op_) << '\n';
+        os << std::format("Operator: {}", op_.value) << '\n';
         lhs_->dump(os, indent + 1);
         rhs_->dump(os, indent + 1);
     }
 
     void accept(NodeVisitor &v) override;
 
-    [[nodiscard]] std::string const &op() const
+    [[nodiscard]] Token const &op() const
     {
         return op_;
     }
@@ -220,7 +257,7 @@ class BinaryOperationExpr : public Expression {
     }
 
   private:
-    std::string op_;
+    Token op_;
     ExpressionPtr lhs_;
     ExpressionPtr rhs_;
 };

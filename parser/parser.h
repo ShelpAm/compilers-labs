@@ -17,9 +17,11 @@ class Parser {
     std::unique_ptr<ast::Declaration> parse_declaration();
     std::unique_ptr<ast::Statement> parse_statement();
     std::unique_ptr<ast::Statement> parse_if_statement();
+    std::unique_ptr<ast::Statement> parse_while_statement();
     std::unique_ptr<ast::CompoundStatement> parse_compound_statement();
     ast::ExpressionPtr parse_expression();
-    ast::ExpressionPtr try_parse_equalequal();
+    ast::ExpressionPtr try_parse_assignment_expr();
+    ast::ExpressionPtr try_parse_equality_expr();
     ast::ExpressionPtr try_parse_add_minus();
     ast::ExpressionPtr try_parse_mult_div_mod();
     ast::ExpressionPtr try_parse_unary_expr();

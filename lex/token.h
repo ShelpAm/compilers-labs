@@ -38,6 +38,7 @@ enum class TokenKind : unsigned char {
     keyword_return,
     keyword_if,
     keyword_else,
+    keyword_while,
 
     identifier,
     integer_val,
@@ -54,10 +55,19 @@ enum class TokenKind : unsigned char {
     slash,
     percent,
     equal,
+
+    // Comparator operators
     equalequal,
+    less,
+    more,
+    lessthan,
+    morethan,
 
     l_brace,
     r_brace,
+
+    l_bracket,
+    r_bracket,
 
     l_paren,
     r_paren,
@@ -85,6 +95,8 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
         return "keyword_if";
     case keyword_else:
         return "keyword_else";
+    case keyword_while:
+        return "keyword_while";
 
     case identifier:
         return "identifier";
@@ -113,13 +125,26 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
         return "percent";
     case equal:
         return "equal";
+
     case equalequal:
         return "equalequal";
+    case less:
+        return "less";
+    case lessthan:
+        return "lessthan";
+    case more:
+        return "more";
+    case morethan:
+        return "morethan";
 
     case l_brace:
         return "l_brace";
     case r_brace:
         return "r_brace";
+    case l_bracket:
+        return "l_bracket";
+    case r_bracket:
+        return "r_bracket";
     case l_paren:
         return "l_paren";
     case r_paren:
@@ -149,6 +174,7 @@ inline bool is_keyword(TokenKind kind)
     case TokenKind::keyword_return:
     case TokenKind::keyword_if:
     case TokenKind::keyword_else:
+    case TokenKind::keyword_while:
         return true;
     default:
         return false;
