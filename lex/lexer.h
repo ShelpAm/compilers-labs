@@ -32,6 +32,7 @@ class Lexer {
     char peek_char();
 
     std::ifstream ifs_;
+    SourceLocation last_source_location_;
     SourceLocation source_location_;
     mutable std::optional<Token> peeked_token_;
 };

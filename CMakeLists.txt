@@ -16,6 +16,7 @@ target_sources(hlvm
         ast/ast.cpp
         ast/node.cpp
         ast/node-visitor.cpp
+        ast/recursive-node-visitor.cpp
         ast/decl.cpp
         ast/expr.cpp
         ast/stmt.cpp

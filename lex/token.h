@@ -25,7 +25,7 @@ template <>
 struct std::formatter<SourceRange> : std::formatter<std::string_view> {
     static auto format(SourceRange const &range, format_context &ctx)
     {
-        return std::format_to(ctx.out(), "{}~{}", range.begin, range.end);
+        return std::format_to(ctx.out(), "{}-{}", range.begin, range.end);
     }
 };
 
@@ -194,5 +194,6 @@ struct Token {
 
     TokenKind kind{TokenKind::unknown};
     std::string value;
-    SourceLocation source_location{};
+    SourceRange source_range{};
+    [[deprecated("Use source range please")]] SourceLocation source_location{};
 };

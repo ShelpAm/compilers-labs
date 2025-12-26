@@ -206,6 +206,7 @@ char Lexer::read_char()
         return EOF;
     }
 
+    last_source_location_ = source_location_;
     if (ch == '\n') {
         source_location_.column = 1;
         source_location_.row += 1;
@@ -249,6 +250,7 @@ Token Lexer::lex_one()
 
     Token result;
     result.source_location = source_location_;
+    result.source_range.begin = source_location_;
 
     if (ch == EOF) {
         result.kind = TokenKind::eof;
@@ -303,5 +305,7 @@ Token Lexer::lex_one()
         result.value = read_char();
     }
     // clang-format on
+
+    result.source_range.end = last_source_location_;
     return result;
 }

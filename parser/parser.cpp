@@ -1,5 +1,6 @@
 #include <parser/parser.h>
 
+#include <spdlog/spdlog.h>
 #include <stacktrace>
 
 using namespace ast;
@@ -101,7 +102,7 @@ std::unique_ptr<ast::Declaration> Parser::parse_declaration()
         if (!body)
             return nullptr;
 
-        fn->set_source_begin(type_tok.source_location);
+        fn->set_source_begin(type_tok.source_range.begin);
         fn->set_source_end(body->source_range().end);
         fn->return_type_ = type_tok;
         fn->name_ = name_tok.value;
@@ -169,7 +170,7 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
                 return nullptr;
         }
 
-        stmt->set_source_end(peek().source_location);
+        stmt->set_source_end(peek().source_range.end);
         if (!expect_and_consume(TokenKind::semicolon))
             return nullptr;
 
@@ -188,14 +189,14 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
         auto stmt = std::make_unique<ast::DeclarationStatement>();
         stmt->decl_ = parse_declaration();
         stmt->set_source_begin(stmt->decl_->source_range().begin);
-        stmt->set_source_begin(stmt->decl_->source_range().end);
+        stmt->set_source_end(stmt->decl_->source_range().end);
         return stmt;
     }
     case TokenKind::semicolon: {
         auto es = std::make_unique<ast::EmptyStatement>();
         auto semi_tok = consume();
-        es->set_source_begin(semi_tok.source_location);
-        es->set_source_end(semi_tok.source_location);
+        es->set_source_begin(semi_tok.source_range.begin);
+        es->set_source_end(semi_tok.source_range.end);
         return es;
     }
     default: {
@@ -205,7 +206,7 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
             return nullptr;
 
         stmt->set_source_begin(stmt->expr_->source_range().begin);
-        stmt->set_source_end(peek().source_location);
+        stmt->set_source_end(peek().source_range.end);
         if (!expect_and_consume(TokenKind::semicolon))
             return nullptr;
         return stmt;
@@ -602,7 +603,7 @@ ast::ExpressionPtr Parser::parse_primary_expression()
     switch (Token tok = peek(); tok.kind) {
     case identifier: {
         auto t = consume();
-        auto expr = std::make_unique<ast::IdentifierExpr>();
+        auto expr = std::make_unique<ast::IdentifierExpression>();
         expr->name_ = t.value;
         expr->set_source_begin(t.source_location);
         expr->set_source_end(t.source_location);

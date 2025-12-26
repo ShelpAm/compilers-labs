@@ -32,7 +32,7 @@ class Declaration : public Node {
     }
 
   private:
-    semantic::Symbol *symbol_;
+    semantic::Symbol *symbol_{};
 };
 
 class VariableDeclaration : public Declaration {
@@ -43,17 +43,17 @@ class VariableDeclaration : public Declaration {
 
     void accept(NodeVisitor &v) override;
 
-    auto &&name() const
+    [[nodiscard]] auto &&name() const
     {
         return name_;
     }
 
-    auto &&type() const
+    [[nodiscard]] auto &&type() const
     {
         return type_;
     }
 
-    auto &&init() const
+    [[nodiscard]] auto &&init() const
     {
         return init_;
     }
@@ -72,22 +72,22 @@ class FunctionDeclaration : public Declaration {
 
     void accept(NodeVisitor &v) override;
 
-    auto &&name() const
+    [[nodiscard]] auto &&name() const
     {
         return name_;
     }
 
-    auto &&return_type() const
+    [[nodiscard]] auto &&return_type() const
     {
         return return_type_;
     }
 
-    auto &&body() const
+    [[nodiscard]] auto &&body() const
     {
         return body_;
     }
 
-    auto &&parameters() const
+    [[nodiscard]] auto &&parameters() const
     {
         return parameters_;
     }

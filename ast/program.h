@@ -4,9 +4,10 @@
 
 namespace semantic {
 
+class Scope;
 class SemanticAnalyzer;
 
-}
+} // namespace semantic
 
 namespace ast {
 
@@ -27,8 +28,14 @@ class Program : public Node {
         return decls_;
     }
 
+    [[nodiscard]] semantic::Scope *global_scope() const
+    {
+        return global_scope_;
+    }
+
   private:
     std::vector<std::unique_ptr<Declaration>> decls_;
+    semantic::Scope *global_scope_{};
 };
 
 } // namespace ast

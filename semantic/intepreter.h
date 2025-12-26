@@ -1,5 +1,5 @@
 #pragma once
-#include <ast/node-visitor.h>
+#include <ast/recursive-node-visitor.h>
 #include <optional>
 #include <semantic/frame.h>
 #include <semantic/semantic-analyzer.h>
@@ -8,7 +8,7 @@
 
 namespace semantic {
 
-class Intepreter : public ast::NodeVisitor {
+class Intepreter : public ast::RecursiveNodeVisitor {
   public:
     Intepreter(Context *ctx, Diagnostics *diags);
 
@@ -28,7 +28,7 @@ class Intepreter : public ast::NodeVisitor {
     void visit(ast::CallExpression &ce) override;
     void visit(ast::UnaryExpression &uoe) override;
     void visit(ast::BinaryExpression &boe) override;
-    void visit(ast::IdentifierExpr &ie) override;
+    void visit(ast::IdentifierExpression &ie) override;
     void visit(ast::IntegerLiteralExpr &ie) override;
     void visit(ast::FloatLiteralExpr &fe) override;
     void visit(ast::StringLiteralExpr &se) override;

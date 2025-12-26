@@ -1,6 +1,7 @@
 #pragma once
 #include <ast/node.h>
 #include <memory>
+#include <semantic/symbol.h>
 #include <semantic/type.h>
 #include <vector>
 
@@ -17,13 +18,27 @@ class Expression : public Node {
         type_ = type;
     }
 
-    semantic::BasicType const &type()
+    [[nodiscard]] semantic::BasicType *type() const
     {
-        return *type_;
+        return type_;
+    }
+
+    void set_symbol(semantic::Symbol *sym)
+    {
+        symbol_ = sym;
+    }
+
+    [[nodiscard]] semantic::Symbol *symbol() const
+    {
+        return symbol_;
     }
 
   private:
-    semantic::BasicType *type_;
+    semantic::BasicType *type_{};
+
+    // If this expression is associated with a symbol (e.g., identifier). And in
+    // this time, it's an lvalue.
+    semantic::Symbol *symbol_{};
 };
 using ExpressionPtr = std::unique_ptr<Expression>;
 
@@ -98,7 +113,7 @@ class StringLiteralExpr : public PrimaryExpression {
     std::string value_;
 };
 
-class IdentifierExpr : public PrimaryExpression {
+class IdentifierExpression : public PrimaryExpression {
     friend class ::Parser;
 
   public:

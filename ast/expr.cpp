@@ -16,7 +16,7 @@ void ast::StringLiteralExpr::accept(NodeVisitor &v)
     v.visit(*this);
 }
 
-void ast::IdentifierExpr::accept(NodeVisitor &v)
+void ast::IdentifierExpression::accept(NodeVisitor &v)
 {
     v.visit(*this);
 }

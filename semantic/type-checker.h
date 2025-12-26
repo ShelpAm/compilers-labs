@@ -18,11 +18,11 @@ class TypeChecker : public ast::NodeVisitor {
     void visit(ast::IfStatement &) override {}
 
     void visit(ast::IdentifierExpr &) override {}
-    void visit(ast::UnaryOperationExpr &e) override
+    void visit(ast::UnaryExpression &e) override
     {
         e.type();
     }
-    void visit(ast::BinaryOperationExpr &) override {}
+    void visit(ast::BinaryExpression &) override {}
     void visit(ast::CallExpression &) override {}
 
     void visit(ast::IntegerLiteralExpr &) override {}

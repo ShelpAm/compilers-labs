@@ -54,21 +54,27 @@ void semantic::Intepreter::dump(std::ostream &os)
 void semantic::Intepreter::visit(ast::Program &p)
 {
     for (auto const &d : p.declarations()) {
-        std::println("Visiting declaration");
+        spdlog::debug("Visiting declaration");
         d->accept(*this);
     }
 
-    auto *main = ctx_->symbol_table_.lookup("main");
-    if (main == nullptr) {
+    auto *scope = p.global_scope();
+    assert(scope != nullptr);
+    auto *symbol = scope->lookup_symbol("main");
+    if (symbol == nullptr) {
         diags_->error("Cannot find 'main'. Did you forget to define it?");
         return;
     }
-    auto *ft = static_cast<FunctionType *>(main->type_ptr);
-    assert(ft);
-    assert(ft->decl);
-    assert(ft->decl->body());
     enter_subframe();
     try {
+        if (symbol->symbolkind != SymbolKind::variable ||
+            symbol->type_ptr->typekind != TypeKind::function_type) {
+            diags_->error("'main' is not a function, its type: {}",
+                          to_string(symbol->type_ptr->typekind));
+            return;
+        }
+        auto *ft = static_cast<FunctionType *>(symbol->type_ptr);
+        assert(ft && ft->decl && ft->decl->body());
         ft->decl->body()->accept(*this);
     }
     catch (ReturnSignal const &e) {
@@ -88,7 +94,7 @@ void semantic::Intepreter::visit(ast::VariableDeclaration &vd)
     // std::println("Defining variable {}", vd.name());
 }
 
-void semantic::Intepreter::visit(ast::FunctionDeclaration &fd) {}
+void semantic::Intepreter::visit(ast::FunctionDeclaration & /*unused*/) {}
 
 void semantic::Intepreter::visit(ast::CompoundStatement &cs)
 {
@@ -108,7 +114,8 @@ void semantic::Intepreter::visit(ast::DeclarationStatement &ds)
 void semantic::Intepreter::visit(ast::CallExpression &ce)
 {
     // Check if is a callable function
-    auto *callee_p = dynamic_cast<ast::IdentifierExpr *>(ce.callee().get());
+    auto *callee_p =
+        dynamic_cast<ast::IdentifierExpression *>(ce.callee().get());
     if (callee_p == nullptr) {
         diags_->error(
             "Callee not an identifier, as we only support identifiers");
@@ -121,8 +128,12 @@ void semantic::Intepreter::visit(ast::CallExpression &ce)
         return;
     }
 
-    auto *sym = ctx_->symbol_table_.lookup(callee_p->name());
-    if (sym == nullptr || sym->type_ptr->typekind != TypeKind::function_type) {
+    auto *sym = callee_p->symbol();
+    if (sym == nullptr) {
+        diags_->error("Undefined function '{}'", callee_p->name());
+        return;
+    }
+    if (sym->type_ptr->typekind != TypeKind::function_type) {
         diags_->error("Callee '{}' not a function", callee_p->name());
         return;
     }
@@ -148,7 +159,7 @@ void semantic::Intepreter::visit(ast::CallExpression &ce)
     }
     catch (ReturnSignal const &e) {
         // Doing nothing, because it's a signal to leave function
-        e;
+        ;
     }
     // leave_frame();
 }
@@ -185,14 +196,6 @@ void semantic::Intepreter::visit(ast::UnaryExpression &uoe)
 
 void semantic::Intepreter::visit(ast::BinaryExpression &boe)
 {
-    auto *pidentifier = dynamic_cast<ast::IdentifierExpr *>(boe.lhs().get());
-    if (pidentifier == nullptr) {
-        diags_->error("{}: Left-hand side of binary operation not an "
-                      "identifier",
-                      boe.source_range());
-        last_visited_.reset();
-        return;
-    }
     auto rhs = std::stoll(eval(boe.rhs().get()));
 
     auto const &op = boe.op();
@@ -239,6 +242,15 @@ void semantic::Intepreter::visit(ast::BinaryExpression &boe)
             return lhs >= rhs ? 1LL : 0LL;
         }
         case TokenKind::equal: {
+            auto *pidentifier =
+                dynamic_cast<ast::IdentifierExpression *>(boe.lhs().get());
+            if (pidentifier == nullptr) {
+                diags_->error(
+                    "{}: Left-hand side of assignment expression not an "
+                    "identifier",
+                    boe.source_range());
+                last_visited_.reset();
+            }
             auto *pvar = curr_frame_->lookup_lvalue(pidentifier->name());
             *pvar = std::to_string(rhs);
             return std::stoll(*pvar);
@@ -252,7 +264,7 @@ void semantic::Intepreter::visit(ast::BinaryExpression &boe)
     last_visited_ = std::to_string(execute());
 }
 
-void semantic::Intepreter::visit(ast::IdentifierExpr &ie)
+void semantic::Intepreter::visit(ast::IdentifierExpression &ie)
 {
     auto p = curr_frame_->lookup_rvalue(ie.name());
     if (!p.has_value()) {

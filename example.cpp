@@ -34,11 +34,12 @@ TEST(Lexer, Basic)
     Lexer lexer("system64.hlvm");
     while (true) {
         auto token = lexer.lex();
+        EXPECT_TRUE(token.is_not(TokenKind::unknown));
         if (token.is(TokenKind::eof)) {
             break;
         }
         std::println(R"(token: type: {:12} in {}: {})", to_string(token.kind),
-                     token.source_location, token.value);
+                     token.source_range, token.value);
     }
 }
 
@@ -68,7 +69,24 @@ TEST(Semantic, Basic)
 
     semantic::SemanticAnalyzer analyzer(&ctx, &diags);
     prog->accept(analyzer);
-    analyzer.summary();
+
+    ctx.dump(0);
+}
+
+TEST(Intepreter, Basic)
+{
+    Lexer lexer("system64.hlvm");
+    Diagnostics diags;
+
+    Parser parser(lexer, diags);
+
+    auto prog = parser.parse_program();
+    ASSERT_TRUE(prog);
+
+    semantic::Context ctx;
+
+    semantic::SemanticAnalyzer analyzer(&ctx, &diags);
+    prog->accept(analyzer);
 
     semantic::Intepreter inte(&ctx, &diags);
     prog->accept(inte);
@@ -77,7 +95,7 @@ TEST(Semantic, Basic)
 
 int main(int argc, char **argv)
 {
-    // spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::debug);
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

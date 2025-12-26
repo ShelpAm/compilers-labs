@@ -39,17 +39,12 @@ inline std::string to_string(TypeKind k)
 }
 
 struct BasicType {
-  public:
-    constexpr auto operator<=>(BasicType const &) const noexcept = default;
-
     std::size_t size;
     TypeKind typekind;
 };
 
 // Size must be the same as PointerType
 struct FunctionType : public BasicType {
-    constexpr auto operator<=>(FunctionType const &) const noexcept = default;
-
     BasicType *return_type;
     std::vector<BasicType *> parameter_types;
     ast::FunctionDeclaration *decl;
