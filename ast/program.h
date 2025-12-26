@@ -1,5 +1,5 @@
 #pragma once
-#include <ast/decl.h>
+#include <ast/stmt.h>
 #include <vector>
 
 namespace semantic {
@@ -22,8 +22,8 @@ class Program : public Node {
 
     void accept(NodeVisitor &v) override;
 
-    [[nodiscard]] std::vector<std::unique_ptr<Declaration>> const &
-    declarations() const
+    [[nodiscard]] std::vector<std::unique_ptr<DeclarationStatement>> const &
+    declaration_statements() const
     {
         return decls_;
     }
@@ -34,7 +34,7 @@ class Program : public Node {
     }
 
   private:
-    std::vector<std::unique_ptr<Declaration>> decls_;
+    std::vector<std::unique_ptr<DeclarationStatement>> decls_;
     semantic::Scope *global_scope_{};
 };
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <ast/program.h>
 #include <ast/stmt.h>
+#include <deque>
 #include <diagnostics.h>
 #include <lex/lexer.h>
 #include <source_location>
@@ -9,16 +10,23 @@
 /// @brief Does grammar analysis
 class Parser {
   public:
-    Parser(Lexer &lexer, Diagnostics &diags) : lexer_(lexer), diags_(diags) {}
+    Parser(Lexer *lexer, Diagnostics *diags) : lexer_(lexer), diags_(diags) {}
 
     std::unique_ptr<ast::Program> parse_program();
 
   private:
-    std::unique_ptr<ast::Declaration> parse_declaration();
     std::unique_ptr<ast::Statement> parse_statement();
+    std::unique_ptr<ast::DeclarationStatement> parse_declaration_statement();
+    std::unique_ptr<ast::Declaration> parse_declaration();
+    std::unique_ptr<ast::FunctionDeclaration>
+    parse_function_declaration(Token const &type_tok, Token const &name_tok);
+    std::unique_ptr<ast::VariableDeclaration>
+    parse_variable_declaration(Token const &type_tok, Token const &name_tok);
+    std::unique_ptr<ast::Statement> parse_return_statement();
     std::unique_ptr<ast::Statement> parse_if_statement();
     std::unique_ptr<ast::Statement> parse_while_statement();
     std::unique_ptr<ast::CompoundStatement> parse_compound_statement();
+    std::unique_ptr<ast::ExpressionStatement> parse_expression_statement();
     ast::ExpressionPtr parse_expression();
     ast::ExpressionPtr try_parse_assignment_expr();
     ast::ExpressionPtr try_parse_equality_expr();
@@ -28,16 +36,16 @@ class Parser {
     ast::ExpressionPtr try_parse_postfix_expr();
     ast::ExpressionPtr parse_primary_expression();
 
-    [[nodiscard]] Token const &peek() const;
+    Token const &peek(std::size_t ahead = 0);
     Token consume();
     bool expect(TokenKind);
     bool expect_true(std::invocable<TokenKind> auto &&pred,
                      std::string_view what)
     {
         if (!pred(peek().kind)) {
-            diags_.error("{}: expected '{}', got '{}'", peek().source_location,
-                         what, peek().value);
-            diags_.error("Stacktrace: {}", std::stacktrace::current());
+            diags_->error("{}: expected '{}', got '{}'", peek().source_location,
+                          what, peek().value);
+            diags_->error("Stacktrace: {}", std::stacktrace::current());
             return false;
         }
         return true;
@@ -52,8 +60,9 @@ class Parser {
         return *previous_token_;
     }
 
+    std::deque<Token> lookahead_buffer_;
     // Unavailble before the first call to `consume()`
     std::optional<Token> previous_token_;
-    Lexer &lexer_;
-    Diagnostics &diags_;
+    Lexer *lexer_;
+    Diagnostics *diags_;
 };

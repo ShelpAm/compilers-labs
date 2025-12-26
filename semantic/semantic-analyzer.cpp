@@ -45,34 +45,38 @@ void semantic::SemanticAnalyzer::visit(ast::VariableDeclaration &vd)
                           .symbolkind = SymbolKind::variable});
 
     vd.set_symbol(ctx_->current_scope()->lookup_local_symbol(vd.name()));
+
+    if (auto const &init = vd.init()) {
+        init->accept(*this);
+    }
 }
 
 void semantic::SemanticAnalyzer::visit(ast::FunctionDeclaration &fd)
 {
-    if (ctx_->current_scope()->lookup_local_symbol(fd.name()) != nullptr) {
+    auto *out = ctx_->current_scope();
+    ctx_->push_scope();
+    auto *in = ctx_->current_scope();
+
+    if (out->lookup_local_symbol(fd.name()) != nullptr) {
         diags_->error("Function re-declaration error: {}", fd.name());
         return;
     }
-
-    auto *out = ctx_->current_scope();
-
-    ctx_->push_scope();
 
     // Constructs a function type instance
     std::vector<BasicType *> param_types;
     for (auto const &[paramtype, name] : fd.parameters()) {
         param_types.push_back(find_type_by_name(paramtype));
-        ctx_->current_scope()->define_symbol(
-            name, Symbol{.name = name,
-                         .type_ptr = param_types.back(),
-                         .symbolkind = SymbolKind::variable});
+        // We don't define unnamed parameter in our table.
+        if (!name.empty())
+            in->define_symbol(name, Symbol{.name = name,
+                                           .type_ptr = param_types.back(),
+                                           .symbolkind = SymbolKind::variable});
     }
     auto ft = FunctionType(
         BasicType{.size = 4, .typekind = TypeKind::function_type},
         find_type_by_name(fd.return_type().value), param_types, &fd);
 
     auto *ptr = out->define_unnamed_type(ft);
-
     out->define_symbol(fd.name(), Symbol{.name = fd.name(),
                                          .type_ptr = ptr,
                                          .symbolkind = SymbolKind::variable});
@@ -162,10 +166,9 @@ void semantic::SemanticAnalyzer::visit(ast::CallExpression &ce)
         return;
     }
 
-    auto *s = ctx_->current_scope()->lookup_symbol(callee_p->name());
+    auto *s = callee_p->symbol();
     if (s == nullptr) {
-        diags_->error("{}: Undefined function '{}'", ce.source_range(),
-                      callee_p->name());
+        throw std::runtime_error("Symbol unbound");
         return;
     }
     if (s->type_ptr->typekind != TypeKind::function_type) {
@@ -207,6 +210,8 @@ void semantic::SemanticAnalyzer::visit(ast::IdentifierExpression &ie)
         return;
     }
 
+    spdlog::info("BINDING id {} at {} to {}", ie.name(),
+                 static_cast<void *>(&ie), static_cast<void *>(s));
     ie.set_symbol(s);
     ie.set_type(s->type_ptr);
 }
@@ -295,7 +300,7 @@ void semantic::SemanticAnalyzer::visit(ast::StringLiteralExpr &se)
 semantic::BasicType *
 semantic::SemanticAnalyzer::find_type_by_name(std::string_view name)
 {
-    if (auto *p = ctx_->get_builtin_type(std::string{name}))
+    if (auto *p = ctx_->find_builtin_type(std::string{name}))
         return p;
 
     if (auto *p = ctx_->current_scope()->lookup_type(std::string{name}))

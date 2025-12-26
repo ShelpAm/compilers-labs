@@ -2,6 +2,7 @@
 #include <format>
 #include <string>
 #include <string_view>
+#include <utility>
 
 struct SourceLocation {
     std::size_t row;
@@ -158,11 +159,25 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
     return "unknown";
 }
 
-inline bool is_type(TokenKind kind)
+inline bool is_type_keyword(TokenKind kind)
 {
     using enum TokenKind;
     return kind == keyword_int || kind == keyword_float ||
            kind == keyword_string;
+}
+
+inline bool is_likely_type(TokenKind k)
+{
+    switch (k) {
+    case TokenKind::keyword_int:
+    case TokenKind::keyword_float:
+    case TokenKind::keyword_string:
+    case TokenKind::identifier:
+        return true;
+    default:
+        return false;
+    }
+    std::unreachable();
 }
 
 inline bool is_keyword(TokenKind kind)

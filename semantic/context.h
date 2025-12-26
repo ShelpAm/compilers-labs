@@ -29,6 +29,14 @@ class Context {
         builtin_types_.insert({name, type});
     }
 
+    BasicType *find_builtin_type(std::string const &name)
+    {
+        if (auto it = builtin_types_.find(name); it != builtin_types_.end()) {
+            return &it->second;
+        }
+        return nullptr;
+    }
+
     BasicType *get_builtin_type(std::string const &name)
     {
         if (auto it = builtin_types_.find(name); it != builtin_types_.end()) {
@@ -36,7 +44,6 @@ class Context {
         }
         throw std::runtime_error(
             std::format("Builtin type '{}' not found", name));
-        return nullptr;
     }
 
     void dump(std::size_t indent) const

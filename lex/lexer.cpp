@@ -25,15 +25,6 @@ Lexer::Lexer(std::filesystem::path const &path)
     }
 }
 
-Token const &Lexer::peek() const
-{
-    if (!peeked_token_.has_value()) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-        peeked_token_ = const_cast<Lexer *>(this)->lex();
-    }
-    return *peeked_token_;
-}
-
 Token Lexer::lex()
 {
     Token tok;

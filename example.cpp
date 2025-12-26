@@ -48,7 +48,7 @@ TEST(AST, Basic)
     Lexer lexer("system64.hlvm");
     Diagnostics diags;
 
-    Parser parser(lexer, diags);
+    Parser parser(&lexer, &diags);
 
     auto prog = parser.parse_program();
     ASSERT_TRUE(prog);
@@ -60,7 +60,7 @@ TEST(Semantic, Basic)
     Lexer lexer("system64.hlvm");
     Diagnostics diags;
 
-    Parser parser(lexer, diags);
+    Parser parser(&lexer, &diags);
 
     auto prog = parser.parse_program();
     ASSERT_TRUE(prog);
@@ -78,7 +78,7 @@ TEST(Intepreter, Basic)
     Lexer lexer("system64.hlvm");
     Diagnostics diags;
 
-    Parser parser(lexer, diags);
+    Parser parser(&lexer, &diags);
 
     auto prog = parser.parse_program();
     ASSERT_TRUE(prog);

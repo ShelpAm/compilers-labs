@@ -278,7 +278,7 @@ void Grammar::summary() const
                            ? std::format("{}", map[nonterminal][terminal])
                            : "");
         }
-        std::println();
+        std::println("");
     }
 }
 

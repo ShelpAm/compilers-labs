@@ -4,7 +4,7 @@
 
 void ast::RecursiveNodeVisitor::visit(ast::Program &p)
 {
-    for (auto const &d : p.declarations()) {
+    for (auto const &d : p.declaration_statements()) {
         d->accept(*this);
     }
 }

@@ -63,7 +63,7 @@ class Scope {
 
     void define_symbol(std::string const &name, Symbol symbol)
     {
-        spdlog::debug("Defining symbol {}", symbol.name);
+        spdlog::debug("Defining symbol '{}'", symbol.name);
         symbol_table_.define(name, std::move(symbol));
     }
 

@@ -11,21 +11,6 @@
 #include <spdlog/spdlog.h>
 #include <utility>
 
-// struct Finally {
-//     Finally(Finally const &) = default;
-//     Finally(Finally &&) = delete;
-//     Finally &operator=(Finally const &) = default;
-//     Finally &operator=(Finally &&) = delete;
-//     Finally(std::function<void()> f) : func_(std::move(f)) {}
-//     ~Finally()
-//     {
-//         func_();
-//     }
-//
-//   private:
-//     std::function<void()> func_;
-// };
-
 void semantic::Intepreter::dump(std::ostream &os)
 {
     if (curr_frame_) {
@@ -53,8 +38,8 @@ void semantic::Intepreter::dump(std::ostream &os)
 
 void semantic::Intepreter::visit(ast::Program &p)
 {
-    for (auto const &d : p.declarations()) {
-        spdlog::debug("Visiting declaration");
+    for (auto const &d : p.declaration_statements()) {
+        spdlog::debug("Visiting declaration statements");
         d->accept(*this);
     }
 
@@ -118,7 +103,8 @@ void semantic::Intepreter::visit(ast::CallExpression &ce)
         dynamic_cast<ast::IdentifierExpression *>(ce.callee().get());
     if (callee_p == nullptr) {
         diags_->error(
-            "Callee not an identifier, as we only support identifiers");
+            "{}: Callee not an identifier, but we only support identifiers",
+            callee_p->source_range());
         last_visited_.reset();
         return;
     }
@@ -128,10 +114,17 @@ void semantic::Intepreter::visit(ast::CallExpression &ce)
         return;
     }
 
+    spdlog::info("IE: {} {}", callee_p->name(), static_cast<void *>(callee_p));
     auto *sym = callee_p->symbol();
     if (sym == nullptr) {
-        diags_->error("Undefined function '{}'", callee_p->name());
-        return;
+        throw std::logic_error("Symbol unbounded");
+        // diags_->error("{}: Undefined identifier '{}'",
+        // callee_p->source_range(),
+        //               callee_p->name());
+        // spdlog::error("Can find local symbol {}? {}", callee_p->name(),
+        //               ctx_->current_scope()->lookup_local_symbol(
+        //                   callee_p->name()) != nullptr);
+        // return;
     }
     if (sym->type_ptr->typekind != TypeKind::function_type) {
         diags_->error("Callee '{}' not a function", callee_p->name());

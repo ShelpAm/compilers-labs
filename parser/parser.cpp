@@ -5,14 +5,22 @@
 
 using namespace ast;
 
-Token const &Parser::peek() const
+Token const &Parser::peek(std::size_t ahead)
 {
-    return lexer_.peek();
+    while (ahead + 1 > lookahead_buffer_.size()) { // Need lex new tokens
+        lookahead_buffer_.push_back(lexer_->lex());
+    }
+
+    return lookahead_buffer_.at(ahead);
 }
 
 Token Parser::consume()
 {
-    auto ret = lexer_.lex();
+    peek(); // Get at least one token in the buffer.
+    assert(!lookahead_buffer_.empty());
+    auto ret = lookahead_buffer_.front(); // And then consume it
+    lookahead_buffer_.pop_front();
+
     previous_token_.emplace(ret);
     return ret;
 }
@@ -20,9 +28,9 @@ Token Parser::consume()
 bool Parser::expect(TokenKind kind)
 {
     if (!peek().is(kind)) {
-        diags_.error("{}: expected '{}', got '{}'", peek().source_location,
-                     to_string(kind), peek().value);
-        diags_.error("Stacktrace: {}", std::stacktrace::current());
+        diags_->error("{}: expected '{}', got '{}'", peek().source_range,
+                      to_string(kind), peek().value);
+        diags_->error("Stacktrace: {}", std::stacktrace::current());
         return false;
     }
     return true;
@@ -41,7 +49,7 @@ std::unique_ptr<Program> Parser::parse_program()
     auto program = std::make_unique<Program>();
 
     while (!peek().is(TokenKind::eof)) {
-        auto decl = parse_declaration();
+        auto decl = parse_declaration_statement();
         if (!decl)
             return nullptr;
         program->decls_.push_back(std::move(decl));
@@ -52,65 +60,91 @@ std::unique_ptr<Program> Parser::parse_program()
     return program;
 }
 
+std::unique_ptr<ast::DeclarationStatement> Parser::parse_declaration_statement()
+{
+    auto stmt = std::make_unique<ast::DeclarationStatement>();
+
+    stmt->decl_ = parse_declaration();
+    if (!stmt->decl_)
+        return nullptr;
+
+    stmt->set_source_begin(stmt->decl_->source_range().begin);
+    stmt->set_source_end(stmt->decl_->source_range().end);
+    return stmt;
+}
+
 std::unique_ptr<ast::Declaration> Parser::parse_declaration()
 {
     using enum TokenKind;
 
-    if (!expect_true(is_type, "is_type")) {
+    if (!expect_true(is_likely_type, "likely_type"))
         return nullptr;
-    }
     auto type_tok = consume();
 
     if (!expect(identifier))
         return nullptr;
     Token name_tok = consume();
 
-    // -------- function declaration --------
+    // Type name ( ... ) { ... }
     if (peek().is(l_paren)) {
-        auto fn = std::make_unique<ast::FunctionDeclaration>();
-
-        consume(); // (
-
-        // Parses parameters list
-        bool first_time{true};
-        while (peek().is_not(TokenKind::r_paren)) {
-            if (!first_time && !expect_and_consume(TokenKind::comma))
-                return nullptr;
-
-            // Type
-            auto can_be_type = [](auto k) {
-                return is_type(k) || k == identifier;
-            };
-            if (!expect_true(can_be_type, "type"))
-                return nullptr;
-
-            auto param_type_tok = consume();
-            std::string param_name;
-            if (!peek().is(r_paren) && !peek().is(comma)) { // param name
-                param_name = consume().value;
-            }
-            fn->parameters_.push_back({param_type_tok.value, param_name});
-
-            if (first_time)
-                first_time = false;
-        }
-
-        if (!expect_and_consume(r_paren))
-            return nullptr;
-
-        auto body = parse_compound_statement();
-        if (!body)
-            return nullptr;
-
-        fn->set_source_begin(type_tok.source_range.begin);
-        fn->set_source_end(body->source_range().end);
-        fn->return_type_ = type_tok;
-        fn->name_ = name_tok.value;
-        fn->body_ = std::move(body);
-        return fn;
+        return parse_function_declaration(type_tok, name_tok);
     }
 
-    // -------- variable declaration --------
+    // Type name [= init] ;
+    return parse_variable_declaration(type_tok, name_tok);
+}
+
+std::unique_ptr<ast::FunctionDeclaration>
+Parser::parse_function_declaration(Token const &type_tok, Token const &name_tok)
+{
+    using enum TokenKind;
+    auto fn = std::make_unique<ast::FunctionDeclaration>();
+
+    consume(); // (
+
+    // Parses parameters list
+    bool first_time{true};
+    while (peek().is_not(TokenKind::r_paren)) {
+        if (!first_time && !expect_and_consume(TokenKind::comma))
+            return nullptr;
+
+        // Type
+        auto can_be_type = [](auto k) {
+            return is_type_keyword(k) || k == identifier;
+        };
+        if (!expect_true(can_be_type, "type"))
+            return nullptr;
+
+        auto param_type_tok = consume(); // type
+        std::string param_name;
+        if (!peek().is(r_paren) && !peek().is(comma)) { // param name
+            param_name = consume().value;
+        }
+        fn->parameters_.push_back({param_type_tok.value, param_name});
+
+        if (first_time)
+            first_time = false;
+    }
+
+    if (!expect_and_consume(r_paren))
+        return nullptr;
+
+    auto body = parse_compound_statement();
+    if (!body)
+        return nullptr;
+
+    fn->set_source_begin(type_tok.source_range.begin);
+    fn->set_source_end(body->source_range().end);
+    fn->return_type_ = type_tok;
+    fn->name_ = name_tok.value;
+    fn->body_ = std::move(body);
+    return fn;
+}
+
+std::unique_ptr<ast::VariableDeclaration>
+Parser::parse_variable_declaration(Token const &type_tok, Token const &name_tok)
+{
+    using enum TokenKind;
     std::unique_ptr<ast::Expression> init;
 
     if (peek().is(equal)) {
@@ -126,8 +160,8 @@ std::unique_ptr<ast::Declaration> Parser::parse_declaration()
     auto semi_tok = consume();
 
     auto var = std::make_unique<ast::VariableDeclaration>();
-    var->set_source_begin(type_tok.source_location);
-    var->set_source_end(semi_tok.source_location);
+    var->set_source_begin(type_tok.source_range.begin);
+    var->set_source_end(semi_tok.source_range.end);
     var->type_ = type_tok;
     var->name_ = name_tok.value;
     var->init_ = std::move(init);
@@ -137,7 +171,7 @@ std::unique_ptr<ast::Declaration> Parser::parse_declaration()
 std::unique_ptr<CompoundStatement> Parser::parse_compound_statement()
 {
     auto block = std::make_unique<CompoundStatement>();
-    block->set_source_begin(peek().source_location);
+    block->set_source_begin(peek().source_range.begin);
 
     if (!expect_and_consume(TokenKind::l_brace))
         return nullptr;
@@ -150,7 +184,7 @@ std::unique_ptr<CompoundStatement> Parser::parse_compound_statement()
     }
 
     auto rbrace_tok = consume(); // }
-    block->set_source_end(rbrace_tok.source_location);
+    block->set_source_end(rbrace_tok.source_range.end);
 
     return block;
 }
@@ -158,24 +192,8 @@ std::unique_ptr<CompoundStatement> Parser::parse_compound_statement()
 std::unique_ptr<ast::Statement> Parser::parse_statement()
 {
     switch (peek().kind) {
-    case TokenKind::keyword_return: {
-        auto stmt = std::make_unique<ast::ReturnStatement>();
-        stmt->set_source_begin(peek().source_location);
-
-        consume(); // consume 'return'
-
-        if (!peek().is(TokenKind::semicolon)) {
-            stmt->returned_value_ = parse_expression();
-            if (!stmt->returned_value_)
-                return nullptr;
-        }
-
-        stmt->set_source_end(peek().source_range.end);
-        if (!expect_and_consume(TokenKind::semicolon))
-            return nullptr;
-
-        return stmt;
-    }
+    case TokenKind::keyword_return:
+        return parse_return_statement();
     case TokenKind::keyword_if:
         return parse_if_statement();
     case TokenKind::keyword_while:
@@ -185,13 +203,9 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
 
     case TokenKind::keyword_int:
     case TokenKind::keyword_float:
-    case TokenKind::keyword_string: {
-        auto stmt = std::make_unique<ast::DeclarationStatement>();
-        stmt->decl_ = parse_declaration();
-        stmt->set_source_begin(stmt->decl_->source_range().begin);
-        stmt->set_source_end(stmt->decl_->source_range().end);
-        return stmt;
-    }
+    case TokenKind::keyword_string:
+        return parse_declaration_statement();
+
     case TokenKind::semicolon: {
         auto es = std::make_unique<ast::EmptyStatement>();
         auto semi_tok = consume();
@@ -199,19 +213,34 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
         es->set_source_end(semi_tok.source_range.end);
         return es;
     }
-    default: {
-        auto stmt = std::make_unique<ast::ExpressionStatement>();
-        stmt->expr_ = parse_expression();
-        if (!stmt->expr_)
-            return nullptr;
+    case TokenKind::identifier: {
+        // Classname var ...
+        if (peek(1).is(TokenKind::identifier))
+            return parse_declaration_statement();
 
-        stmt->set_source_begin(stmt->expr_->source_range().begin);
-        stmt->set_source_end(peek().source_range.end);
-        if (!expect_and_consume(TokenKind::semicolon))
-            return nullptr;
-        return stmt;
+        return parse_expression_statement();
     }
+    default:
+        return nullptr;
     }
+    std::unreachable();
+}
+
+std::unique_ptr<ast::ExpressionStatement> Parser::parse_expression_statement()
+{
+    auto stmt = std::make_unique<ast::ExpressionStatement>();
+
+    stmt->expr_ = parse_expression();
+    if (!stmt->expr_)
+        return nullptr;
+
+    stmt->set_source_begin(stmt->expr_->source_range().begin);
+    stmt->set_source_end(peek().source_range.end);
+
+    if (!expect_and_consume(TokenKind::semicolon))
+        return nullptr;
+
+    return stmt;
 }
 
 // lhs op rhs
@@ -646,6 +675,26 @@ ast::ExpressionPtr Parser::parse_primary_expression()
         expect_true([](auto) { return false; }, "primary expression");
         return nullptr;
     }
+}
+
+std::unique_ptr<ast::Statement> Parser::parse_return_statement()
+{
+    auto stmt = std::make_unique<ast::ReturnStatement>();
+    stmt->set_source_begin(peek().source_location);
+
+    consume(); // consume 'return'
+
+    if (!peek().is(TokenKind::semicolon)) {
+        stmt->returned_value_ = parse_expression();
+        if (!stmt->returned_value_)
+            return nullptr;
+    }
+
+    stmt->set_source_end(peek().source_range.end);
+    if (!expect_and_consume(TokenKind::semicolon))
+        return nullptr;
+
+    return stmt;
 }
 
 // Grammar: if () ... [else ...]

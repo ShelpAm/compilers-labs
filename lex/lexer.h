@@ -12,7 +12,6 @@ class Lexer {
   public:
     Lexer(std::filesystem::path const &path);
 
-    Token const &peek() const;
     Token lex();
 
   private:
