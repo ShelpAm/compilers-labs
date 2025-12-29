@@ -48,7 +48,7 @@ void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
 
     make_indent(os, indent + 1);
     os << "Parameters:\n";
-    for (auto const &[type, name] : parameters_) {
+    for (auto const &[type, name, _] : parameters_) {
         make_indent(os, indent + 2);
         os << "Parameter:\n";
         make_indent(os, indent + 3);

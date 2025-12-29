@@ -69,14 +69,14 @@ void semantic::SemanticAnalyzer::visit(ast::FunctionDeclaration &fd)
 
     // Constructs a function type instance
     std::vector<Type *> param_types;
-    for (auto const &[paramtype, name] : fd.parameters()) {
+    for (auto &[paramtype, name, psymbol] : fd.parameters()) {
         paramtype->accept(*this);
         param_types.push_back(paramtype->type());
-        // We don't define unnamed parameter in our table.
-        if (!name.empty())
-            in->define_symbol(name, Symbol{.name = name,
-                                           .type_ptr = param_types.back(),
-                                           .symbolkind = SymbolKind::variable});
+        assert(!name.empty()); // Name won't be empty, as we changed the syntax.
+        in->define_symbol(name, Symbol{.name = name,
+                                       .type_ptr = param_types.back(),
+                                       .symbolkind = SymbolKind::variable});
+        psymbol = in->lookup_local_symbol(name);
     }
     fd.return_type()->accept(*this);
     auto ft = FunctionType(fd.return_type()->type(), param_types, &fd);

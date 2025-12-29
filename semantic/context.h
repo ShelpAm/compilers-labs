@@ -1,3 +1,4 @@
+#pragma once
 #include <ranges>
 #include <semantic/scope.h>
 

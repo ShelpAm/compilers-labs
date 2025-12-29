@@ -2,6 +2,7 @@
 #include <determinstic-finite-automaton.h>
 #include <grammar.h>
 #include <gtest/gtest.h>
+#include <ir/ir-builder.h>
 #include <lex/lexer.h>
 #include <nondeterminstic-finite-automaton.h>
 #include <parser/parser.h>
@@ -91,6 +92,26 @@ TEST(Intepreter, Basic)
     semantic::Intepreter inte(&ctx, &diags);
     prog->accept(inte);
     inte.dump(std::cout);
+}
+
+TEST(IRGeneration, Basic)
+{
+    Lexer lexer("system64.hlvm");
+    Diagnostics diags;
+
+    Parser parser(&lexer, &diags);
+
+    auto prog = parser.parse_program();
+    ASSERT_TRUE(prog);
+
+    semantic::Context ctx;
+
+    semantic::SemanticAnalyzer analyzer(&ctx, &diags);
+    prog->accept(analyzer);
+
+    ir::IRBuilder irbuilder;
+    prog->accept(irbuilder);
+    irbuilder.dump();
 }
 
 int main(int argc, char **argv)

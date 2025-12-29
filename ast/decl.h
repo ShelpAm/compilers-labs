@@ -28,9 +28,9 @@ class Declaration : public Node {
         symbol_ = sym;
     }
 
-    [[nodiscard]] semantic::Symbol const &symbol() const
+    [[nodiscard]] semantic::Symbol *symbol() const
     {
-        return *symbol_;
+        return symbol_;
     }
 
   private:
@@ -89,6 +89,11 @@ class FunctionDeclaration : public Declaration {
         return body_;
     }
 
+    [[nodiscard]] auto &&parameters()
+    {
+        return parameters_;
+    }
+
     [[nodiscard]] auto &&parameters() const
     {
         return parameters_;
@@ -98,6 +103,7 @@ class FunctionDeclaration : public Declaration {
     struct Parameter {
         TypePtr type;
         std::string name;
+        semantic::Symbol *symbol{};
     };
 
     TypePtr return_type_;
