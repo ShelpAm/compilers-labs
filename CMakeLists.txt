@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 project(hlvm VERSION 0.1)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(spdlog REQUIRED)
