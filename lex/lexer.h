@@ -21,11 +21,13 @@ class Lexer {
     void lex_numeric(Token &result);
 
     // This also filters out keywords.
-    void lex_identifier(Token &result);
+    void lex_identifier_or_keyword(Token &result);
 
     void lex_string(Token &result);
     void lex_semicolon(Token &result);
     void lex_operator(Token &result);
+
+    void skip_spaces();
 
     char read_char();
     char peek_char();
@@ -33,5 +35,4 @@ class Lexer {
     std::ifstream ifs_;
     SourceLocation last_source_location_;
     SourceLocation source_location_;
-    mutable std::optional<Token> peeked_token_;
 };

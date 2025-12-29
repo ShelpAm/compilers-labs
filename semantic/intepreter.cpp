@@ -84,7 +84,7 @@ void semantic::Intepreter::visit(ast::FunctionDeclaration & /*unused*/) {}
 void semantic::Intepreter::visit(ast::CompoundStatement &cs)
 {
     spdlog::debug("Executing body of compound statement");
-    for (auto const &s : cs.statments()) {
+    for (auto const &s : cs.statements()) {
         s->accept(*this);
     }
 }
@@ -114,7 +114,6 @@ void semantic::Intepreter::visit(ast::CallExpression &ce)
         return;
     }
 
-    spdlog::info("IE: {} {}", callee_p->name(), static_cast<void *>(callee_p));
     auto *sym = callee_p->symbol();
     if (sym == nullptr) {
         throw std::logic_error("Symbol unbounded");

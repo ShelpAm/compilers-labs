@@ -6,9 +6,10 @@ TokenKind identifier_to_token_kind(std::string_view s) noexcept
 
     static std::unordered_map<std::string_view, TokenKind> const map{
         {"int", keyword_int},       {"float", keyword_float},
-        {"string", keyword_string}, {"return", keyword_return},
-        {"if", keyword_if},         {"else", keyword_else},
-        {"while", keyword_while},
+        {"char", keyword_char},     {"string", keyword_string},
+        {"return", keyword_return}, {"if", keyword_if},
+        {"else", keyword_else},     {"while", keyword_while},
+        {"var", keyword_var},       {"func", keyword_func},
     };
 
     if (map.contains(s))
@@ -49,18 +50,18 @@ void Lexer::lex_comment(Token &result)
 
 void Lexer::lex_numeric(Token &result)
 {
-    result.kind = TokenKind::integer_val;
+    result.kind = TokenKind::integer_literal;
     while (true) {
         char ch = peek_char();
         if (std::isdigit(ch) != 0) {
             result.value += ch;
         }
         else if (ch == '.') {
-            if (result.kind == TokenKind::integer_val) {
-                result.kind = TokenKind::float_val;
+            if (result.kind == TokenKind::integer_literal) {
+                result.kind = TokenKind::float_literal;
                 result.value += ch;
             }
-            else if (result.kind == TokenKind::float_val) {
+            else if (result.kind == TokenKind::float_literal) {
                 break;
             }
         }
@@ -71,7 +72,7 @@ void Lexer::lex_numeric(Token &result)
     }
 }
 
-void Lexer::lex_identifier(Token &result)
+void Lexer::lex_identifier_or_keyword(Token &result)
 {
     while (true) {
         char ch = peek_char();
@@ -89,7 +90,7 @@ void Lexer::lex_identifier(Token &result)
 
 void Lexer::lex_string(Token &result)
 {
-    result.kind = TokenKind::string_val;
+    result.kind = TokenKind::string_literal;
 
     if (read_char() != '\"') {
         throw std::logic_error{"Impossible. Must be an error in hlvm"};
@@ -183,8 +184,23 @@ void Lexer::lex_operator(Token &result)
     case ',':
         result.kind = TokenKind::comma;
         break;
+    case ':':
+        result.kind = TokenKind::colon;
+        break;
     default:
         result.kind = TokenKind::unknown;
+    }
+}
+
+void Lexer::skip_spaces()
+{
+    // Reads out spaces and newlines, as they are not any part of token.
+    while (true) {
+        char ch = peek_char();
+        if (std::isspace(ch) == 0) {
+            return;
+        }
+        read_char();
     }
 }
 
@@ -219,30 +235,13 @@ char Lexer::peek_char()
 
 Token Lexer::lex_one()
 {
-    // Fetch peeked value.
-    if (peeked_token_.has_value()) {
-        auto ret = std::move(*peeked_token_);
-        peeked_token_.reset();
-        return ret;
-    }
-
-    char ch; // Current char
-
-    // Reads out spaces and newlines, as they are not any part of token.
-    while (true) {
-        ch = peek_char();
-        if (std::isspace(ch) != 0) {
-            read_char();
-        }
-        else {
-            break;
-        }
-    }
+    skip_spaces();
 
     Token result;
     result.source_location = source_location_;
     result.source_range.begin = source_location_;
 
+    char ch = peek_char(); // Current char
     if (ch == EOF) {
         result.kind = TokenKind::eof;
         return result;
@@ -266,7 +265,7 @@ Token Lexer::lex_one()
     case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u':
     case 'v': case 'w': case 'x': case 'y': case 'z':
     case '_':
-        lex_identifier(result);
+        lex_identifier_or_keyword(result);
         break;
     case '\"':
         lex_string(result);
@@ -286,6 +285,7 @@ Token Lexer::lex_one()
     case '=':
     case '<':
     case '>':
+    case ':':
         lex_operator(result);
         break;
     case ';':

@@ -18,15 +18,14 @@ class Parser {
     std::unique_ptr<ast::Statement> parse_statement();
     std::unique_ptr<ast::DeclarationStatement> parse_declaration_statement();
     std::unique_ptr<ast::Declaration> parse_declaration();
-    std::unique_ptr<ast::FunctionDeclaration>
-    parse_function_declaration(Token const &type_tok, Token const &name_tok);
-    std::unique_ptr<ast::VariableDeclaration>
-    parse_variable_declaration(Token const &type_tok, Token const &name_tok);
+    std::unique_ptr<ast::FunctionDeclaration> parse_function_declaration();
+    std::unique_ptr<ast::VariableDeclaration> parse_variable_declaration();
     std::unique_ptr<ast::Statement> parse_return_statement();
     std::unique_ptr<ast::Statement> parse_if_statement();
     std::unique_ptr<ast::Statement> parse_while_statement();
     std::unique_ptr<ast::CompoundStatement> parse_compound_statement();
     std::unique_ptr<ast::ExpressionStatement> parse_expression_statement();
+
     ast::ExpressionPtr parse_expression();
     ast::ExpressionPtr try_parse_assignment_expr();
     ast::ExpressionPtr try_parse_equality_expr();
@@ -35,6 +34,8 @@ class Parser {
     ast::ExpressionPtr try_parse_unary_expr();
     ast::ExpressionPtr try_parse_postfix_expr();
     ast::ExpressionPtr parse_primary_expression();
+
+    ast::TypePtr parse_type();
 
     Token const &peek(std::size_t ahead = 0);
     Token consume();

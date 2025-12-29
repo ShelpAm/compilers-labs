@@ -35,19 +35,23 @@ enum class TokenKind : unsigned char {
 
     keyword_int,
     keyword_float,
-    keyword_string,
+    keyword_char,
+    keyword_string, // Should be removed.
     keyword_return,
     keyword_if,
     keyword_else,
     keyword_while,
+    keyword_var,
+    keyword_func,
 
     identifier,
-    integer_val,
-    string_val,
-    float_val,
-    comment,
-    semicolon,
-    comma,
+    integer_literal,
+    string_literal,
+    float_literal,
+    comment,   // //
+    colon,     // :
+    semicolon, // ;
+    comma,     // ,
 
     // Operators
     plus,
@@ -88,6 +92,8 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
         return "keyword_int";
     case keyword_float:
         return "keyword_float";
+    case keyword_char:
+        return "keyword_char";
     case keyword_string:
         return "keyword_string";
     case keyword_return:
@@ -98,17 +104,23 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
         return "keyword_else";
     case keyword_while:
         return "keyword_while";
+    case keyword_var:
+        return "keyword_var";
+    case keyword_func:
+        return "keyword_func";
 
     case identifier:
         return "identifier";
-    case integer_val:
+    case integer_literal:
         return "integer_val";
-    case float_val:
+    case float_literal:
         return "float_val";
-    case string_val:
+    case string_literal:
         return "string_val";
     case comment:
         return "comment";
+    case colon:
+        return "colon";
     case semicolon:
         return "semicolon";
     case comma:
@@ -155,7 +167,6 @@ constexpr std::string_view to_string(TokenKind kind) noexcept
         return "eof";
     }
 
-    // 理论上不可达，但防御性兜底
     return "unknown";
 }
 
@@ -163,7 +174,7 @@ inline bool is_type_keyword(TokenKind kind)
 {
     using enum TokenKind;
     return kind == keyword_int || kind == keyword_float ||
-           kind == keyword_string;
+           kind == keyword_char || kind == keyword_string;
 }
 
 inline bool is_likely_type(TokenKind k)
@@ -171,6 +182,7 @@ inline bool is_likely_type(TokenKind k)
     switch (k) {
     case TokenKind::keyword_int:
     case TokenKind::keyword_float:
+    case TokenKind::keyword_char:
     case TokenKind::keyword_string:
     case TokenKind::identifier:
         return true;
@@ -210,5 +222,6 @@ struct Token {
     TokenKind kind{TokenKind::unknown};
     std::string value;
     SourceRange source_range{};
-    [[deprecated("Use source range please")]] SourceLocation source_location{};
+    // FIXME: add this [[deprecated("Use source range please")]]
+    SourceLocation source_location{};
 };

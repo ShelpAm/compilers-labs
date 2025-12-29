@@ -32,7 +32,7 @@ class CompoundStatement : public Statement {
 
     void accept(NodeVisitor &v) override;
 
-    [[nodiscard]] auto &&statments() const
+    [[nodiscard]] auto &&statements() const
     {
         return stmts_;
     }

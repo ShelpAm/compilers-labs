@@ -11,7 +11,7 @@ enum class SymbolKind : unsigned char {
 struct Symbol {
   public:
     std::string name;
-    BasicType *type_ptr;
+    Type *type_ptr;
     SymbolKind symbolkind;
 };
 

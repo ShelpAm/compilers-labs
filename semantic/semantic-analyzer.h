@@ -33,8 +33,12 @@ class SemanticAnalyzer : public ast::RecursiveNodeVisitor {
     void visit(ast::FloatLiteralExpr &fe) override;
     void visit(ast::StringLiteralExpr &se) override;
 
+    void visit(ast::BasicType &bt) override;
+    void visit(ast::ArrayType &at) override;
+    void visit(ast::PointerType &pt) override;
+
   private:
-    BasicType *find_type_by_name(std::string_view name);
+    Type *resolve_type(std::string_view name);
 
     Context *ctx_;
     Diagnostics *diags_;

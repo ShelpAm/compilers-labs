@@ -75,32 +75,31 @@ std::unique_ptr<ast::DeclarationStatement> Parser::parse_declaration_statement()
 
 std::unique_ptr<ast::Declaration> Parser::parse_declaration()
 {
-    using enum TokenKind;
+    if (peek().is(TokenKind::keyword_var))
+        return parse_variable_declaration();
 
-    if (!expect_true(is_likely_type, "likely_type"))
-        return nullptr;
-    auto type_tok = consume();
+    if (peek().is(TokenKind::keyword_func))
+        return parse_function_declaration();
 
-    if (!expect(identifier))
-        return nullptr;
-    Token name_tok = consume();
-
-    // Type name ( ... ) { ... }
-    if (peek().is(l_paren)) {
-        return parse_function_declaration(type_tok, name_tok);
-    }
-
-    // Type name [= init] ;
-    return parse_variable_declaration(type_tok, name_tok);
+    diags_->error("{}: expected declaration, got '{}'", peek().source_range,
+                  peek().value);
+    return nullptr;
 }
 
-std::unique_ptr<ast::FunctionDeclaration>
-Parser::parse_function_declaration(Token const &type_tok, Token const &name_tok)
+std::unique_ptr<ast::FunctionDeclaration> Parser::parse_function_declaration()
 {
-    using enum TokenKind;
-    auto fn = std::make_unique<ast::FunctionDeclaration>();
+    if (!expect(TokenKind::keyword_func))
+        return nullptr;
+    auto func_tok = consume();
 
-    consume(); // (
+    if (!expect(TokenKind::identifier))
+        return nullptr;
+    auto id_tok = consume();
+
+    if (!expect_and_consume(TokenKind::l_paren))
+        return nullptr;
+
+    auto fn = std::make_unique<ast::FunctionDeclaration>();
 
     // Parses parameters list
     bool first_time{true};
@@ -108,45 +107,72 @@ Parser::parse_function_declaration(Token const &type_tok, Token const &name_tok)
         if (!first_time && !expect_and_consume(TokenKind::comma))
             return nullptr;
 
-        // Type
-        auto can_be_type = [](auto k) {
-            return is_type_keyword(k) || k == identifier;
-        };
-        if (!expect_true(can_be_type, "type"))
+        if (!expect(TokenKind::identifier))
+            return nullptr;
+        auto param_name_tok = consume();
+
+        if (!expect_and_consume(TokenKind::colon))
             return nullptr;
 
-        auto param_type_tok = consume(); // type
-        std::string param_name;
-        if (!peek().is(r_paren) && !peek().is(comma)) { // param name
-            param_name = consume().value;
-        }
-        fn->parameters_.push_back({param_type_tok.value, param_name});
+        auto param_type = parse_type();
+        if (!param_type)
+            return nullptr;
+
+        fn->parameters_.push_back(
+            {std::move(param_type), param_name_tok.value});
 
         if (first_time)
             first_time = false;
     }
 
-    if (!expect_and_consume(r_paren))
+    if (!expect_and_consume(TokenKind::r_paren))
         return nullptr;
+
+    // Optional return type
+    if (peek().is(TokenKind::colon)) {
+        consume(); // :
+
+        fn->return_type_ = parse_type();
+        if (!fn->return_type_)
+            return nullptr;
+    }
 
     auto body = parse_compound_statement();
     if (!body)
         return nullptr;
 
-    fn->set_source_begin(type_tok.source_range.begin);
+    fn->set_source_begin(func_tok.source_range.begin);
     fn->set_source_end(body->source_range().end);
-    fn->return_type_ = type_tok;
-    fn->name_ = name_tok.value;
+    fn->name_ = id_tok.value;
     fn->body_ = std::move(body);
     return fn;
 }
 
-std::unique_ptr<ast::VariableDeclaration>
-Parser::parse_variable_declaration(Token const &type_tok, Token const &name_tok)
+std::unique_ptr<ast::VariableDeclaration> Parser::parse_variable_declaration()
 {
     using enum TokenKind;
     std::unique_ptr<ast::Expression> init;
 
+    if (!expect(keyword_var))
+        return nullptr;
+    auto var_tok = consume();
+
+    if (!expect(identifier))
+        return nullptr;
+    auto name_tok = consume();
+
+    auto var = std::make_unique<ast::VariableDeclaration>();
+
+    // Optional ": Type"
+    if (peek().is(colon)) {
+        consume(); // :
+
+        var->type_ = parse_type();
+        if (!var->type_)
+            return nullptr;
+    }
+
+    // Optional "= init"
     if (peek().is(equal)) {
         consume(); // =
         init = parse_expression();
@@ -156,13 +182,10 @@ Parser::parse_variable_declaration(Token const &type_tok, Token const &name_tok)
 
     if (!expect(semicolon))
         return nullptr;
-
     auto semi_tok = consume();
 
-    auto var = std::make_unique<ast::VariableDeclaration>();
-    var->set_source_begin(type_tok.source_range.begin);
+    var->set_source_begin(var_tok.source_range.begin);
     var->set_source_end(semi_tok.source_range.end);
-    var->type_ = type_tok;
     var->name_ = name_tok.value;
     var->init_ = std::move(init);
     return var;
@@ -201,9 +224,8 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
     case TokenKind::l_brace:
         return parse_compound_statement();
 
-    case TokenKind::keyword_int:
-    case TokenKind::keyword_float:
-    case TokenKind::keyword_string:
+    case TokenKind::keyword_var:
+    case TokenKind::keyword_func:
         return parse_declaration_statement();
 
     case TokenKind::semicolon: {
@@ -213,14 +235,12 @@ std::unique_ptr<ast::Statement> Parser::parse_statement()
         es->set_source_end(semi_tok.source_range.end);
         return es;
     }
-    case TokenKind::identifier: {
-        // Classname var ...
-        if (peek(1).is(TokenKind::identifier))
-            return parse_declaration_statement();
-
+    case TokenKind::identifier:
         return parse_expression_statement();
-    }
+
     default:
+        diags_->error("{}: expected statement, got '{}'", peek().source_range,
+                      peek().value);
         return nullptr;
     }
     std::unreachable();
@@ -638,7 +658,7 @@ ast::ExpressionPtr Parser::parse_primary_expression()
         expr->set_source_end(t.source_location);
         return expr;
     }
-    case integer_val: {
+    case integer_literal: {
         auto t = consume();
         auto expr = std::make_unique<ast::IntegerLiteralExpr>();
         expr->value_ = t.value;
@@ -646,7 +666,7 @@ ast::ExpressionPtr Parser::parse_primary_expression()
         expr->set_source_end(t.source_location);
         return expr;
     }
-    case float_val: {
+    case float_literal: {
         auto t = consume();
         auto expr = std::make_unique<ast::FloatLiteralExpr>();
         expr->value_ = t.value;
@@ -654,7 +674,7 @@ ast::ExpressionPtr Parser::parse_primary_expression()
         expr->set_source_end(t.source_location);
         return expr;
     }
-    case string_val: {
+    case string_literal: {
         auto t = consume();
         auto expr = std::make_unique<ast::StringLiteralExpr>();
         expr->value_ = t.value;
@@ -747,4 +767,52 @@ std::unique_ptr<ast::Statement> Parser::parse_while_statement()
 
     while_statement->set_source_end(previous_token().source_location);
     return while_statement;
+}
+
+ast::TypePtr Parser::parse_type()
+{
+    if (!expect_true(is_likely_type, "type"))
+        return nullptr;
+    auto basictype_tok = consume();
+
+    ast::TypePtr type;
+
+    auto basic_type = std::make_unique<ast::BasicType>();
+    basic_type->name_ = basictype_tok.value;
+    type = std::move(basic_type);
+
+    while (true) {
+        switch (peek().kind) {
+        case TokenKind::l_bracket: {
+            consume(); // [
+
+            auto array_type = std::make_unique<ast::ArrayType>();
+            array_type->element_type_ = std::move(type);
+
+            auto sz_tok = consume();
+            if (sz_tok.is_not(TokenKind::integer_literal)) {
+                diags_->error(
+                    "{}: expected array size(integer literal), got '{}'",
+                    sz_tok.source_range, sz_tok.value);
+                return nullptr;
+            }
+            array_type->size_ = std::stoull(sz_tok.value);
+
+            if (!expect_and_consume(TokenKind::r_bracket))
+                return nullptr;
+
+            type = std::move(array_type);
+            break;
+        }
+        case TokenKind::star: {
+            consume(); // *
+            auto pointer_type = std::make_unique<ast::PointerType>();
+            pointer_type->pointee_type_ = std::move(type);
+            type = std::move(pointer_type);
+            break;
+        }
+        default:
+            return type;
+        };
+    }
 }

@@ -10,7 +10,11 @@ void ast::VariableDeclaration::dump(std::ostream &os, int indent) const
     os << "VariableDeclaration\n";
 
     make_indent(os, indent + 1);
-    os << "Type: " << type_.value << "\n";
+    os << "Type:\n";
+    if (type_)
+        type_->dump(os, indent + 2);
+    else
+        make_indent(os, indent + 2), os << "null\n";
 
     make_indent(os, indent + 1);
     os << "Name: " << name_ << "\n";
@@ -33,7 +37,11 @@ void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
     os << "FunctionDeclaration\n";
 
     make_indent(os, indent + 1);
-    os << "ReturnType: " << return_type_.value << "\n";
+    os << "ReturnType:\n";
+    if (return_type_)
+        return_type_->dump(os, indent + 2);
+    else
+        make_indent(os, indent + 2), os << "null\n";
 
     make_indent(os, indent + 1);
     os << "Name: " << name_ << "\n";
@@ -42,7 +50,12 @@ void ast::FunctionDeclaration::dump(std::ostream &os, int indent) const
     os << "Parameters:\n";
     for (auto const &[type, name] : parameters_) {
         make_indent(os, indent + 2);
-        os << type << ' ' << name << '\n';
+        os << "Parameter:\n";
+        make_indent(os, indent + 3);
+        os << "Name: " << name << "\n";
+        make_indent(os, indent + 3);
+        os << "Type:\n";
+        type->dump(os, indent + 4);
     }
 
     if (body_) {

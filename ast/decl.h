@@ -1,12 +1,14 @@
 #pragma once
+#include <ast/expr.h>
 #include <ast/node.h>
+#include <ast/type.h>
 #include <lex/token.h>
 #include <memory>
 #include <vector>
 
 namespace semantic {
 
-class Symbol;
+struct Symbol;
 
 class SemanticAnalyzer;
 
@@ -59,9 +61,9 @@ class VariableDeclaration : public Declaration {
     }
 
   private:
-    Token type_;
     std::string name_;
-    std::unique_ptr<Expression> init_;
+    TypePtr type_;
+    ExpressionPtr init_;
 };
 
 class FunctionDeclaration : public Declaration {
@@ -94,11 +96,11 @@ class FunctionDeclaration : public Declaration {
 
   private:
     struct Parameter {
-        std::string type;
+        TypePtr type;
         std::string name;
     };
 
-    Token return_type_;
+    TypePtr return_type_;
     std::string name_;
     std::vector<Parameter> parameters_;
     std::unique_ptr<CompoundStatement> body_;

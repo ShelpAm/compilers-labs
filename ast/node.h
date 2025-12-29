@@ -27,6 +27,11 @@ class Node {
 
     virtual void accept(NodeVisitor &v) = 0;
 
+    template <typename T> T *as()
+    {
+        return static_cast<T *>(this);
+    }
+
     [[nodiscard]] SourceRange source_range() const
     {
         return source_range_;

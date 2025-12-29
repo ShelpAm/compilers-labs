@@ -1,5 +1,6 @@
 #pragma once
 #include <helper.h>
+#include <map>
 #include <memory>
 #include <ranges>
 #include <semantic/symbol-table.h>
@@ -67,15 +68,68 @@ class Scope {
         symbol_table_.define(name, std::move(symbol));
     }
 
-    FunctionType *define_unnamed_type(FunctionType t)
-    {
-        unnamed_types_.push_back(std::make_unique<FunctionType>(std::move(t)));
-        return unnamed_types_.back().get();
-    }
-
-    BasicType *lookup_type(std::string const &name)
+    Type *lookup_type(std::string const &name)
     {
         if (auto it = named_types_.find(name); it != named_types_.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
+    ArrayType *define_array_type(ArrayType array_type)
+    {
+        auto [it, inserted] = array_types_.emplace(
+            array_type, std::make_unique<ArrayType>(array_type));
+        if (!inserted) {
+            spdlog::warn("Array type already defined, returning existing one");
+        }
+        return it->second.get();
+    }
+
+    PointerType *define_pointer_type(PointerType pointer_type)
+    {
+        auto [it, inserted] = pointer_types_.emplace(
+            pointer_type, std::make_unique<PointerType>(pointer_type));
+        if (!inserted) {
+            spdlog::warn(
+                "Pointer type already defined, returning existing one");
+        }
+        return it->second.get();
+    }
+
+    FunctionType *define_function_type(FunctionType function_type)
+    {
+        auto [it, inserted] = function_types_.emplace(
+            function_type, std::make_unique<FunctionType>(function_type));
+        if (!inserted) {
+            spdlog::warn(
+                "Function type already defined, returning existing one");
+        }
+        return it->second.get();
+    }
+
+    ArrayType *get_array_type(ArrayType const &atype)
+    {
+        auto it = array_types_.find(atype);
+        if (it != array_types_.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
+    PointerType *get_pointer_type(PointerType const &ptype)
+    {
+        auto it = pointer_types_.find(ptype);
+        if (it != pointer_types_.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
+    FunctionType *get_function_type(FunctionType const &ftype)
+    {
+        auto it = function_types_.find(ftype);
+        if (it != function_types_.end()) {
             return it->second.get();
         }
         return nullptr;
@@ -87,20 +141,22 @@ class Scope {
                       static_cast<void *>(this));
         // All things in the scope
         symbol_table_.dump(indent + 1);
-        spdlog::debug("{}Unnamed Types:", indent_string(indent + 1));
-        for (auto const &[j, type] : std::views::enumerate(unnamed_types_)) {
-            auto const ind = indent_string(indent + 2);
-            spdlog::debug("{}Unnamed Type {}:", ind, j);
-            spdlog::debug("{}    Size: {}", ind, type->size);
-            spdlog::debug("{}    TypeKind: {}", ind, to_string(type->typekind));
-            spdlog::debug("{}    Return Type: {}", ind,
-                          to_string(type->return_type->typekind));
-            spdlog::debug("{}    Parameter Types:", ind);
-            for (auto const &p : type->parameter_types) {
-                spdlog::debug("{}        {}", indent_string(indent + 2),
-                              to_string(p->typekind));
-            }
+
+        spdlog::debug("{}Array Types:", indent_string(indent + 1));
+        for (auto const &[atype, type] : array_types_) {
+            type->dump(indent + 2);
         }
+
+        spdlog::debug("{}Pointer Types:", indent_string(indent + 1));
+        for (auto const &[ptype, type] : pointer_types_) {
+            type->dump(indent + 2);
+        }
+
+        spdlog::debug("{}Function Types:", indent_string(indent + 1));
+        for (auto const &[ftype, type] : function_types_) {
+            type->dump(indent + 2);
+        }
+
         for (auto const &[name, type] : named_types_) {
             spdlog::debug("{}Named Type {}: Size={}, TypeKind={}",
                           indent_string(indent + 2), name, type->size,
@@ -121,10 +177,14 @@ class Scope {
     SymbolTable symbol_table_;
 
     // Functions, lambda
-    std::vector<std::unique_ptr<FunctionType>> unnamed_types_;
+    // std::vector<std::unique_ptr<Type>> unnamed_types_;
+
+    std::map<ArrayType, std::unique_ptr<ArrayType>> array_types_;
+    std::map<PointerType, std::unique_ptr<PointerType>> pointer_types_;
+    std::map<FunctionType, std::unique_ptr<FunctionType>> function_types_;
 
     // User-defined types
-    std::unordered_map<std::string, std::unique_ptr<BasicType>> named_types_;
+    std::unordered_map<std::string, std::unique_ptr<Type>> named_types_;
 };
 
 } // namespace semantic

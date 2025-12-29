@@ -1,37 +1,43 @@
-int print(int i) {}
+func print(i: int): int {}
 
-int f(int n) {
+func f(n: int): int {
     if (n == 0) return 1;
     if (n == 1) return 1;
     return f(n - 1) + f(n - 2);
 }
 
-# int recurse(int a) {
-#     print(a);
-#     if (a == 10) return 0;
-#     return recurse(a + 1) + 1;
-# }
-#
-# int add(int a, int b) {
-#     return a + b;
-# }
+func recurse(a: int): int {
+    print(a);
+    if (a == 10) return 0;
+    return recurse(a + 1) + 1;
+}
 
-int main() {
-    # MyType t;
-    # string s = "wxh lhp";
-    # int a = 3 + 5 * (6 - 2); # 23
-    # int b = 1 + 2 * (-1 - --2); # -5
-    # int d = a + b * b; # 48
-    # int e = add(a, b); # 18
-    int c = f(20);
-    print(c);
+func add(a: int, b: int): int {
+    return a + b;
+}
 
-    # int i = 5;
+func main(): int {
+    var t: MyType;
+    var s: string = "wxh lhp";
+    var a: int = 3 + 5 * (6 - 2); # 23
+    var b: int = 1 + 2 * (-1 - --2); # -5
+    var d: int = a + b * b; # 48
+    var e: int = add(a, b, 1); # 18
+    # int c = f(5);
+    # print(c);
+
+    # int i[5];
     # i[1] = 1;
     # while (i) {
     #     print(i);
     #     i = i - 1;
     # }
+
+    var myarr: int[10];
+    var myarrarr: int[10][20];
+    var p: int *;
+    var myptr: int **;
+    var myp2arrarr: int[10][20] *;
 
     return 0;
 }

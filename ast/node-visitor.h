@@ -23,6 +23,10 @@ class IntegerLiteralExpr;
 class FloatLiteralExpr;
 class StringLiteralExpr;
 
+class BasicType;
+class ArrayType;
+class PointerType;
+
 class NodeVisitor {
   public:
     NodeVisitor() = default;
@@ -54,6 +58,10 @@ class NodeVisitor {
     virtual void visit(IntegerLiteralExpr &) = 0;
     virtual void visit(FloatLiteralExpr &) = 0;
     virtual void visit(StringLiteralExpr &) = 0;
+
+    virtual void visit(BasicType &) = 0;
+    virtual void visit(ArrayType &) = 0;
+    virtual void visit(PointerType &) = 0;
 };
 
 } // namespace ast

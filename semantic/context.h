@@ -24,12 +24,12 @@ class Context {
         current_scope_ = current_scope_->parent();
     }
 
-    void define_builtin_type(std::string const &name, BasicType const &type)
+    void define_builtin_type(std::string const &name, Type const &type)
     {
         builtin_types_.insert({name, type});
     }
 
-    BasicType *find_builtin_type(std::string const &name)
+    Type *find_builtin_type(std::string const &name)
     {
         if (auto it = builtin_types_.find(name); it != builtin_types_.end()) {
             return &it->second;
@@ -37,7 +37,7 @@ class Context {
         return nullptr;
     }
 
-    BasicType *get_builtin_type(std::string const &name)
+    Type *get_builtin_type(std::string const &name)
     {
         if (auto it = builtin_types_.find(name); it != builtin_types_.end()) {
             return &it->second;
@@ -65,7 +65,7 @@ class Context {
     Scope *current_scope_{};
     std::vector<std::unique_ptr<Scope>> scopes_;
 
-    std::unordered_map<std::string, BasicType> builtin_types_;
+    std::unordered_map<std::string, Type> builtin_types_;
 };
 
 } // namespace semantic

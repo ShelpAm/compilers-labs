@@ -20,6 +20,7 @@ target_sources(hlvm
         ast/decl.cpp
         ast/expr.cpp
         ast/stmt.cpp
+        ast/type.cpp
         lex/lexer.cpp
         parser/parser.cpp
         semantic/semantic-analyzer.cpp

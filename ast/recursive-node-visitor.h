@@ -32,6 +32,10 @@ class RecursiveNodeVisitor : public NodeVisitor {
     void visit(FloatLiteralExpr &fe) override;
     void visit(StringLiteralExpr &se) override;
     void visit(IndexExpression &ie) override;
+
+    void visit(BasicType &bt) override;
+    void visit(ArrayType &at) override;
+    void visit(PointerType &pt) override;
 };
 
 } // namespace ast

@@ -13,12 +13,12 @@ class NodeVisitor;
 
 class Expression : public Node {
   public:
-    void set_type(semantic::BasicType *type)
+    void set_type(semantic::Type *type)
     {
         type_ = type;
     }
 
-    [[nodiscard]] semantic::BasicType *type() const
+    [[nodiscard]] semantic::Type *type() const
     {
         return type_;
     }
@@ -34,7 +34,7 @@ class Expression : public Node {
     }
 
   private:
-    semantic::BasicType *type_{};
+    semantic::Type *type_{};
 
     // If this expression is associated with a symbol (e.g., identifier). And in
     // this time, it's an lvalue.

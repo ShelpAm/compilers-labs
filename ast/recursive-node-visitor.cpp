@@ -22,7 +22,7 @@ void ast::RecursiveNodeVisitor::visit(ast::FunctionDeclaration &fd)
 }
 void ast::RecursiveNodeVisitor::visit(ast::CompoundStatement &cs)
 {
-    for (auto const &s : cs.statments()) {
+    for (auto const &s : cs.statements()) {
         s->accept(*this);
     }
 }
@@ -93,4 +93,16 @@ void ast::RecursiveNodeVisitor::visit(ast::IndexExpression &ie)
     for (auto const &index : ie.indices()) {
         index->accept(*this);
     }
+}
+void ast::RecursiveNodeVisitor::visit(ast::BasicType & /*unused*/)
+{
+    // No child nodes
+}
+void ast::RecursiveNodeVisitor::visit(ast::ArrayType &at)
+{
+    at.element_type()->accept(*this);
+}
+void ast::RecursiveNodeVisitor::visit(ast::PointerType &pt)
+{
+    pt.pointee_type()->accept(*this);
 }
