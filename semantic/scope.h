@@ -80,9 +80,6 @@ class Scope {
     {
         auto [it, inserted] = array_types_.emplace(
             array_type, std::make_unique<ArrayType>(array_type));
-        if (!inserted) {
-            spdlog::warn("Array type already defined, returning existing one");
-        }
         return it->second.get();
     }
 
@@ -90,10 +87,6 @@ class Scope {
     {
         auto [it, inserted] = pointer_types_.emplace(
             pointer_type, std::make_unique<PointerType>(pointer_type));
-        if (!inserted) {
-            spdlog::warn(
-                "Pointer type already defined, returning existing one");
-        }
         return it->second.get();
     }
 
@@ -101,10 +94,6 @@ class Scope {
     {
         auto [it, inserted] = function_types_.emplace(
             function_type, std::make_unique<FunctionType>(function_type));
-        if (!inserted) {
-            spdlog::warn(
-                "Function type already defined, returning existing one");
-        }
         return it->second.get();
     }
 

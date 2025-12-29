@@ -32,9 +32,7 @@ class SymbolTable {
         spdlog::debug("{}Symbol Table:", indent_string(indent));
         for (auto const &[name, symbol] : symbol_table_) {
             spdlog::debug("{}    {} -> {}", indent_string(indent), name,
-                          symbol->symbolkind == SymbolKind::variable
-                              ? to_string(symbol->type_ptr->typekind)
-                              : "some function");
+                          symbol->type_ptr->canonical_name());
         }
     }
 

@@ -50,10 +50,9 @@ struct Type {
     }
     virtual ~Type() = default;
 
-    virtual void dump(std::size_t indent = 0)
-    {
-        spdlog::debug("{}Type:", indent_string(indent));
-    }
+    virtual void dump(std::size_t indent = 0) = 0;
+
+    [[nodiscard]] virtual std::string canonical_name() const = 0;
 
     auto operator<=>(Type const &other) const noexcept = default;
 
@@ -78,7 +77,12 @@ struct BuiltinType : public Type {
     {
         spdlog::debug("{}BuiltinType:", indent_string(indent));
         spdlog::debug("{}Kind: {}", indent_string(indent + 1),
-                      static_cast<unsigned>(builintypekind));
+                      to_string(builintypekind));
+    }
+
+    [[nodiscard]] std::string canonical_name() const override
+    {
+        return to_string(builintypekind);
     }
 
     Kind builintypekind;
@@ -113,13 +117,25 @@ struct FunctionType : public Type {
     void dump(std::size_t indent = 0) override
     {
         spdlog::debug("{}FunctionType:", indent_string(indent));
-        spdlog::debug("{}Return Type: {}", indent_string(indent + 1),
-                      to_string(return_type->typekind));
+        spdlog::debug("{}Return Type:", indent_string(indent + 1));
+        return_type->dump(indent + 2);
         spdlog::debug("{}Parameter Types:", indent_string(indent + 1));
-        for (auto const &p : parameter_types) {
-            spdlog::debug("{}{}", indent_string(indent + 2),
-                          to_string(p->typekind));
+        for (auto *type : parameter_types) {
+            type->dump(indent + 2);
         }
+    }
+
+    [[nodiscard]] std::string canonical_name() const override
+    {
+        std::string result = "func(";
+        for (std::size_t i = 0; i < parameter_types.size(); ++i) {
+            result += parameter_types[i]->canonical_name();
+            if (i + 1 < parameter_types.size()) {
+                result += ", ";
+            }
+        }
+        result += ") -> " + return_type->canonical_name();
+        return result;
     }
 
     auto operator<=>(FunctionType const &other) const noexcept = default;
@@ -141,9 +157,15 @@ struct ArrayType : public Type {
     void dump(std::size_t indent = 0) override
     {
         spdlog::debug("{}ArrayType:", indent_string(indent));
-        spdlog::debug("{}Element Type: {}", indent_string(indent + 1),
-                      to_string(element_type->typekind));
+        spdlog::debug("{}Element Type:", indent_string(indent + 1));
+        element_type->dump(indent + 2);
         spdlog::debug("{}Length: {}", indent_string(indent + 1), length);
+    }
+
+    [[nodiscard]] std::string canonical_name() const override
+    {
+        return element_type->canonical_name() + "[" + std::to_string(length) +
+               "]";
     }
 
     Type *element_type;
@@ -160,8 +182,13 @@ struct PointerType : public Type {
     void dump(std::size_t indent = 0) override
     {
         spdlog::debug("{}PointerType:", indent_string(indent));
-        spdlog::debug("{}Pointee Type: {}", indent_string(indent + 1),
-                      to_string(pointee_type->typekind));
+        spdlog::debug("{}Pointee Type:", indent_string(indent + 1));
+        pointee_type->dump(indent + 2);
+    }
+
+    [[nodiscard]] std::string canonical_name() const override
+    {
+        return pointee_type->canonical_name() + "*";
     }
 
     auto operator<=>(PointerType const &other) const noexcept = default;

@@ -24,7 +24,7 @@ class Context {
         current_scope_ = current_scope_->parent();
     }
 
-    void define_builtin_type(std::string const &name, Type const &type)
+    void define_builtin_type(std::string const &name, BuiltinType const &type)
     {
         builtin_types_.insert({name, type});
     }
@@ -65,7 +65,7 @@ class Context {
     Scope *current_scope_{};
     std::vector<std::unique_ptr<Scope>> scopes_;
 
-    std::unordered_map<std::string, Type> builtin_types_;
+    std::unordered_map<std::string, BuiltinType> builtin_types_;
 };
 
 } // namespace semantic
