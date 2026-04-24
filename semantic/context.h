@@ -53,7 +53,7 @@ class Context {
         spdlog::debug("{}Builtin Types:", indent_string(indent + 1));
         for (auto const &[name, type] : builtin_types_) {
             spdlog::debug("{}    {}: size={}, typekind={}",
-                          indent_string(indent + 1), name, type.size,
+                          indent_string(indent + 1), name, type.type_size,
                           to_string(type.typekind));
         }
         spdlog::debug("{}Scopes:", indent_string(indent + 1));

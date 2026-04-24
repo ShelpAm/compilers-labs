@@ -31,29 +31,45 @@ void semantic::SemanticAnalyzer::visit(ast::Program &prog)
 
 void semantic::SemanticAnalyzer::visit(ast::VariableDeclaration &vd)
 {
-    vd.type()->accept(*this);
-    Type *type = vd.type()->type();
-    if (type == nullptr) {
-        // Error should be reported in type resolution. Not here.
-        // diags_->error("Unknown type '{}'", vd.type());
-        return;
-    }
-
     if (ctx_->current_scope()->lookup_local_symbol(vd.name()) != nullptr) {
         diags_->error("Variable re-declaration error: {}", vd.name());
         return;
     }
 
+    if (vd.declared_type()) {
+        // Check if declared type and type init matches
+        vd.resolved_type_ = resolve_type(vd.declared_type().get());
+        if (auto const &init = vd.init()) {
+            init->accept(*this);
+            // if (diags_->has_error())
+            //     return;
+            if (init->type() != vd.resolved_type_) {
+                diags_->error("{}: Cannot init {} by its init expression, they "
+                              "have different type ({} and {})",
+                              vd.source_range(), vd.name(),
+                              vd.resolved_type_->canonical_name(),
+                              init->type()->canonical_name());
+                return;
+            }
+        }
+    }
+    else {
+        if (!vd.init()) {
+            diags_->error("{}: Declaration of '{}' has neither type nor init",
+                          vd.source_range(), vd.name());
+            return;
+        }
+        // Type deduction
+        vd.init()->accept(*this);
+        vd.resolved_type_ = vd.init()->type();
+    }
+
+    Type *type = vd.resolved_type_;
     ctx_->current_scope()->define_symbol(
         vd.name(), Symbol{.name = vd.name(),
                           .type_ptr = type,
                           .symbolkind = SymbolKind::variable});
-
     vd.set_symbol(ctx_->current_scope()->lookup_local_symbol(vd.name()));
-
-    if (auto const &init = vd.init()) {
-        init->accept(*this);
-    }
 }
 
 void semantic::SemanticAnalyzer::visit(ast::FunctionDeclaration &fd)
@@ -71,7 +87,7 @@ void semantic::SemanticAnalyzer::visit(ast::FunctionDeclaration &fd)
     std::vector<Type *> param_types;
     for (auto &[paramtype, name, psymbol] : fd.parameters()) {
         paramtype->accept(*this);
-        param_types.push_back(paramtype->type());
+        param_types.push_back(resolve_type(paramtype.get()));
         assert(!name.empty()); // Name won't be empty, as we changed the syntax.
         in->define_symbol(name, Symbol{.name = name,
                                        .type_ptr = param_types.back(),
@@ -79,7 +95,8 @@ void semantic::SemanticAnalyzer::visit(ast::FunctionDeclaration &fd)
         psymbol = in->lookup_local_symbol(name);
     }
     fd.return_type()->accept(*this);
-    auto ft = FunctionType(fd.return_type()->type(), param_types, &fd);
+    auto ft =
+        FunctionType(resolve_type(fd.return_type().get()), param_types, &fd);
 
     auto *ptr = out->define_function_type(ft);
     out->define_symbol(fd.name(), Symbol{.name = fd.name(),
@@ -141,25 +158,43 @@ void semantic::SemanticAnalyzer::visit(ast::DeclarationStatement &ds)
 
 void semantic::SemanticAnalyzer::visit(ast::IndexExpression &ie)
 {
+    // Check children
     ie.base()->accept(*this);
-    for (auto const &index : ie.indices()) {
-        index->accept(*this);
-        if (index->type()->typekind != TypeKind::builtin_type) {
-            diags_->error("{}: Invalid index type: expected integer, got {}",
-                          ie.source_range(),
-                          to_string(index->type()->typekind));
-            return;
-        }
-        auto *bt = static_cast<BuiltinType *>(index->type());
-        if (bt->builintypekind != BuiltinType::Kind::integer_type) {
-            diags_->error("{}: Invalid index type: expected integer, got {}",
-                          ie.source_range(),
-                          to_string(index->type()->typekind));
-            return;
-        }
+    ie.index()->accept(*this);
+    if (diags_->has_error())
+        return;
+
+    assert(ie.base()->type());
+    if (!ie.base()->type()->convertible_to(TypeKind::pointer_type)) {
+        diags_->error(
+            "{}: lhs does not have operator [] for given argument types",
+            ie.source_range());
+        return;
     }
 
-    ie.set_type(ie.base()->type());
+    // Check if index is int
+    auto *index = ie.index().get();
+    if (index->type()->typekind != TypeKind::builtin_type) {
+        diags_->error("{}: Invalid index type: expected integer, got {}",
+                      ie.source_range(), to_string(index->type()->typekind));
+        return;
+    }
+    auto *bt = static_cast<BuiltinType *>(index->type());
+    if (bt->builintypekind != BuiltinType::Kind::integer_type) {
+        diags_->error("{}: Invalid index type: expected integer, got {}",
+                      ie.source_range(), to_string(index->type()->typekind));
+        return;
+    }
+
+    // Decays to pointer
+    auto *pptr =
+        ctx_->current_scope()->decay_to_pointer_type(ie.base()->type());
+    if (pptr == nullptr) {
+        diags_->error("Cannot decay {} to pointer type",
+                      ie.base()->type()->canonical_name());
+        return;
+    }
+    ie.set_type(pptr);
 }
 
 void semantic::SemanticAnalyzer::visit(ast::CallExpression &ce)
@@ -168,6 +203,8 @@ void semantic::SemanticAnalyzer::visit(ast::CallExpression &ce)
     for (auto const &arg : ce.arguments()) {
         arg->accept(*this);
     }
+    if (diags_->has_error())
+        return;
 
     // Type checking
     auto *callee_p =
@@ -179,10 +216,7 @@ void semantic::SemanticAnalyzer::visit(ast::CallExpression &ce)
     }
 
     auto *s = callee_p->symbol();
-    if (s == nullptr) {
-        throw std::runtime_error("Symbol unbound");
-        return;
-    }
+    assert(s);
     if (s->type_ptr->typekind != TypeKind::function_type) {
         diags_->error("{}: Callee '{}' is not a function", ce.source_range(),
                       callee_p->name());
@@ -237,11 +271,15 @@ void semantic::SemanticAnalyzer::visit(ast::BinaryExpression &be)
     be.lhs()->accept(*this);
     be.rhs()->accept(*this);
 
+    if (diags_->has_error())
+        return;
+
+    assert(be.lhs()->type());
     if (be.lhs()->type() != be.rhs()->type()) {
         diags_->error("{}: Type mismatch in binary expression: left is {}, "
                       "right is {}",
                       be.source_range(), to_string(be.lhs()->type()->typekind),
-                      to_string(be.rhs()->type()->typekind));
+                      be.rhs()->type()->canonical_name());
         return;
     }
 
@@ -314,13 +352,12 @@ void semantic::SemanticAnalyzer::visit(ast::BasicType &bt)
         diags_->error("{}: Unknown type '{}'", bt.source_range(), bt.name());
         return;
     }
-    bt.set_type(p);
+    last_resolved_type_ = p;
 }
 
 void semantic::SemanticAnalyzer::visit(ast::ArrayType &at)
 {
-    at.element_type()->accept(*this);
-    auto *elem_type = at.element_type()->type();
+    auto *elem_type = resolve_type(at.element_type().get());
     if (elem_type == nullptr) {
         diags_->error("{}: Unknown element type in array type",
                       at.source_range());
@@ -328,13 +365,12 @@ void semantic::SemanticAnalyzer::visit(ast::ArrayType &at)
     }
 
     ArrayType array_type(elem_type, at.size());
-    at.set_type(ctx_->current_scope()->define_array_type(array_type));
+    last_resolved_type_ = ctx_->current_scope()->define_array_type(array_type);
 }
 
 void semantic::SemanticAnalyzer::visit(ast::PointerType &pt)
 {
-    pt.pointee_type()->accept(*this);
-    auto *pointee_type = pt.pointee_type()->type();
+    auto *pointee_type = resolve_type(pt.pointee_type().get());
     if (pointee_type == nullptr) {
         diags_->error("{}: Unknown pointee type in pointer type",
                       pt.source_range());
@@ -342,16 +378,26 @@ void semantic::SemanticAnalyzer::visit(ast::PointerType &pt)
     }
 
     PointerType pointer_type(pointee_type);
-    pt.set_type(ctx_->current_scope()->define_pointer_type(pointer_type));
+    last_resolved_type_ =
+        ctx_->current_scope()->define_pointer_type(pointer_type);
+}
+
+semantic::Type *semantic::SemanticAnalyzer::resolve_type(ast::Type *type)
+{
+    if (type == nullptr) {
+        throw std::invalid_argument{"type should not be nullptr"};
+    }
+    type->accept(*this);
+    return last_resolved_type_;
 }
 
 semantic::Type *semantic::SemanticAnalyzer::resolve_type(std::string_view name)
 {
     if (auto *p = ctx_->find_builtin_type(std::string{name}))
-        return p;
+        return last_resolved_type_ = p;
 
     if (auto *p = ctx_->current_scope()->lookup_type(std::string{name}))
-        return p;
+        return last_resolved_type_ = p;
 
-    return nullptr;
+    return last_resolved_type_ = nullptr;
 }

@@ -38,10 +38,12 @@ class SemanticAnalyzer : public ast::RecursiveNodeVisitor {
     void visit(ast::PointerType &pt) override;
 
   private:
+    Type *resolve_type(ast::Type *type);
     Type *resolve_type(std::string_view name);
 
     Context *ctx_;
     Diagnostics *diags_;
+    Type *last_resolved_type_{};
 };
 
 } // namespace semantic

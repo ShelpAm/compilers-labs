@@ -11,8 +11,8 @@ void ast::VariableDeclaration::dump(std::ostream &os, int indent) const
 
     make_indent(os, indent + 1);
     os << "Type:\n";
-    if (type_)
-        type_->dump(os, indent + 2);
+    if (declared_type_)
+        declared_type_->dump(os, indent + 2);
     else
         make_indent(os, indent + 2), os << "null\n";
 

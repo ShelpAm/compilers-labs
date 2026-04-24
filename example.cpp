@@ -52,6 +52,7 @@ TEST(AST, Basic)
     Parser parser(&lexer, &diags);
 
     auto prog = parser.parse_program();
+    EXPECT_FALSE(diags.consume_error());
     ASSERT_TRUE(prog);
     prog->dump(std::cout);
 }
@@ -64,14 +65,15 @@ TEST(Semantic, Basic)
     Parser parser(&lexer, &diags);
 
     auto prog = parser.parse_program();
+    ASSERT_FALSE(diags.consume_error());
     ASSERT_TRUE(prog);
 
     semantic::Context ctx;
 
     semantic::SemanticAnalyzer analyzer(&ctx, &diags);
     prog->accept(analyzer);
-
     ctx.dump(0);
+    EXPECT_FALSE(diags.consume_error());
 }
 
 TEST(Intepreter, Basic)
@@ -82,16 +84,19 @@ TEST(Intepreter, Basic)
     Parser parser(&lexer, &diags);
 
     auto prog = parser.parse_program();
+    ASSERT_FALSE(diags.consume_error());
     ASSERT_TRUE(prog);
 
     semantic::Context ctx;
 
     semantic::SemanticAnalyzer analyzer(&ctx, &diags);
     prog->accept(analyzer);
+    ASSERT_FALSE(diags.consume_error());
 
     semantic::Intepreter inte(&ctx, &diags);
     prog->accept(inte);
     inte.dump(std::cout);
+    EXPECT_FALSE(diags.consume_error());
 }
 
 TEST(IRGeneration, Basic)
@@ -102,21 +107,25 @@ TEST(IRGeneration, Basic)
     Parser parser(&lexer, &diags);
 
     auto prog = parser.parse_program();
+    ASSERT_FALSE(diags.consume_error());
     ASSERT_TRUE(prog);
 
     semantic::Context ctx;
 
     semantic::SemanticAnalyzer analyzer(&ctx, &diags);
     prog->accept(analyzer);
+    ASSERT_FALSE(diags.consume_error());
 
     ir::IRBuilder irbuilder;
     prog->accept(irbuilder);
     irbuilder.dump();
+    EXPECT_FALSE(diags.consume_error());
 }
 
 int main(int argc, char **argv)
 {
     spdlog::set_level(spdlog::level::debug);
+    testing::FLAGS_gtest_catch_exceptions = false;
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

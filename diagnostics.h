@@ -9,5 +9,14 @@ class Diagnostics {
     {
         std::print("error: ");
         std::println(fmt, std::forward<Ts>(ts)...);
+        has_error_ = true;
     }
+
+    [[nodiscard]] bool has_error() const
+    {
+        return has_error_;
+    }
+
+  private:
+    bool has_error_{};
 };

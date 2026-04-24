@@ -8,21 +8,7 @@ class Parser;
 
 namespace ast {
 
-class Type : public Node {
-  public:
-    void set_type(semantic::Type *type)
-    {
-        type_ = type;
-    }
-
-    [[nodiscard]] semantic::Type *type() const
-    {
-        return type_;
-    }
-
-  private:
-    semantic::Type *type_{};
-};
+class Type : public Node {};
 using TypePtr = std::unique_ptr<Type>;
 
 class BasicType : public Type {

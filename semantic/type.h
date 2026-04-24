@@ -2,6 +2,8 @@
 // #include <ast/ast.h>
 #include <helper.h>
 #include <memory>
+#include <ranges>
+#include <set>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <vector>
@@ -45,19 +47,35 @@ struct Type {
     Type(Type &&) = delete;
     Type &operator=(Type const &) = default;
     Type &operator=(Type &&) = delete;
-    Type(std::size_t size, TypeKind typekind) : size(size), typekind(typekind)
+    Type(std::size_t type_size, TypeKind typekind)
+        : type_size(type_size), typekind(typekind), convertible_set_{this}
     {
     }
     virtual ~Type() = default;
 
     virtual void dump(std::size_t indent = 0) = 0;
 
+    bool convertible_to(Type *rhs) const
+    {
+        return convertible_set_.contains(rhs);
+    }
+
+    bool convertible_to(TypeKind tk)
+    {
+        auto typekind_set =
+            convertible_set_ |
+            std::views::transform([](Type *ele) { return ele->typekind; }) |
+            std::ranges::to<std::set<TypeKind>>();
+        return typekind_set.contains(tk);
+    }
+
     [[nodiscard]] virtual std::string canonical_name() const = 0;
 
     auto operator<=>(Type const &other) const noexcept = default;
 
-    std::size_t size;
-    TypeKind typekind; // Only behave as a tag
+    std::size_t type_size;
+    TypeKind typekind;                 // Only behave as a tag
+    std::set<Type *> convertible_set_; // Convertible to
 };
 
 struct BuiltinType : public Type {
@@ -147,7 +165,7 @@ struct FunctionType : public Type {
 
 struct ArrayType : public Type {
     ArrayType(Type *element_type, std::size_t length)
-        : Type(element_type->size * length, TypeKind::array_type),
+        : Type(element_type->type_size * length, TypeKind::array_type),
           element_type(element_type), length(length)
     {
     }

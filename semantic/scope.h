@@ -80,6 +80,11 @@ class Scope {
     {
         auto [it, inserted] = array_types_.emplace(
             array_type, std::make_unique<ArrayType>(array_type));
+
+        auto *p = define_pointer_type(PointerType(array_type.element_type));
+        assert(p && "Pointer type error");
+        it->second->convertible_set_.insert(p);
+
         return it->second.get();
     }
 
@@ -124,6 +129,21 @@ class Scope {
         return nullptr;
     }
 
+    PointerType *decay_to_pointer_type(Type *type)
+    {
+        switch (type->typekind) {
+        case TypeKind::array_type: {
+            auto *p = get_pointer_type(
+                PointerType(static_cast<ArrayType *>(type)->element_type));
+            return p;
+        }
+        case TypeKind::pointer_type:
+            return static_cast<PointerType *>(type);
+        default:
+            throw std::logic_error{"Unable to decay to pointer type"};
+        }
+    } // TODO
+
     void dump(std::size_t indent)
     {
         spdlog::debug("{}Scope at {}:", indent_string(indent),
@@ -148,7 +168,7 @@ class Scope {
 
         for (auto const &[name, type] : named_types_) {
             spdlog::debug("{}Named Type {}: Size={}, TypeKind={}",
-                          indent_string(indent + 2), name, type->size,
+                          indent_string(indent + 2), name, type->type_size,
                           to_string(type->typekind));
         }
         spdlog::debug("{}Child Scopes:", indent_string(indent + 1));

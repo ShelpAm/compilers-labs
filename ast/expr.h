@@ -187,10 +187,8 @@ class IndexExpression : public PostfixExpression {
         base_->dump(os, indent + 2);
 
         make_indent(os, indent + 1);
-        os << "Indices:\n";
-        for (auto const &index : indices_) {
-            index->dump(os, indent + 2);
-        }
+        os << "Index:\n";
+        index_->dump(os, indent + 2);
     }
 
     void accept(NodeVisitor &v) override;
@@ -200,14 +198,14 @@ class IndexExpression : public PostfixExpression {
         return base_;
     }
 
-    [[nodiscard]] std::vector<ExpressionPtr> const &indices() const
+    [[nodiscard]] ExpressionPtr const &index() const
     {
-        return indices_;
+        return index_;
     }
 
   private:
     ExpressionPtr base_;
-    std::vector<ExpressionPtr> indices_;
+    ExpressionPtr index_;
 };
 
 class UnaryExpression : public Expression {

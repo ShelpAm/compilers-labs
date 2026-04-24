@@ -90,9 +90,7 @@ void ast::RecursiveNodeVisitor::visit(ast::StringLiteralExpr & /*unused*/)
 void ast::RecursiveNodeVisitor::visit(ast::IndexExpression &ie)
 {
     ie.base()->accept(*this);
-    for (auto const &index : ie.indices()) {
-        index->accept(*this);
-    }
+    ie.index()->accept(*this);
 }
 void ast::RecursiveNodeVisitor::visit(ast::BasicType & /*unused*/)
 {

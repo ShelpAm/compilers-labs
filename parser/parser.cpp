@@ -167,8 +167,8 @@ std::unique_ptr<ast::VariableDeclaration> Parser::parse_variable_declaration()
     if (peek().is(colon)) {
         consume(); // :
 
-        var->type_ = parse_type();
-        if (!var->type_)
+        var->declared_type_ = parse_type();
+        if (!var->declared_type_)
             return nullptr;
     }
 
@@ -578,24 +578,16 @@ ast::ExpressionPtr Parser::try_parse_postfix_expr()
             auto index_expr = std::make_unique<IndexExpression>();
             index_expr->base_ = std::move(expr);
 
-            // Parses indices list
-            bool first = true;
-            while (peek().is_not(TokenKind::r_bracket)) {
-                if (!first && !expect_and_consume(TokenKind::comma))
-                    return nullptr;
+            auto index = parse_expression();
+            if (!index)
+                return nullptr;
 
-                auto index = parse_expression();
-                if (!index)
-                    return nullptr;
-
-                index_expr->indices_.push_back(std::move(index));
-                first = false;
-            }
+            index_expr->index_ = std::move(index);
 
             if (!expect_and_consume(TokenKind::r_bracket))
                 return nullptr;
 
-            // source range：base.begin -> ']'
+            // 设置源范围：base.begin -> ']'
             index_expr->set_source_begin(
                 index_expr->base_->source_range().begin);
             index_expr->set_source_end(previous_token().source_location);
@@ -654,32 +646,32 @@ ast::ExpressionPtr Parser::parse_primary_expression()
         auto t = consume();
         auto expr = std::make_unique<ast::IdentifierExpression>();
         expr->name_ = t.value;
-        expr->set_source_begin(t.source_location);
-        expr->set_source_end(t.source_location);
+        expr->set_source_begin(t.source_range.begin);
+        expr->set_source_end(t.source_range.end);
         return expr;
     }
     case integer_literal: {
         auto t = consume();
         auto expr = std::make_unique<ast::IntegerLiteralExpr>();
         expr->value_ = t.value;
-        expr->set_source_begin(t.source_location);
-        expr->set_source_end(t.source_location);
+        expr->set_source_begin(t.source_range.begin);
+        expr->set_source_end(t.source_range.end);
         return expr;
     }
     case float_literal: {
         auto t = consume();
         auto expr = std::make_unique<ast::FloatLiteralExpr>();
         expr->value_ = t.value;
-        expr->set_source_begin(t.source_location);
-        expr->set_source_end(t.source_location);
+        expr->set_source_begin(t.source_range.begin);
+        expr->set_source_end(t.source_range.end);
         return expr;
     }
     case string_literal: {
         auto t = consume();
         auto expr = std::make_unique<ast::StringLiteralExpr>();
         expr->value_ = t.value;
-        expr->set_source_begin(t.source_location);
-        expr->set_source_end(t.source_location);
+        expr->set_source_begin(t.source_range.begin);
+        expr->set_source_end(t.source_range.end);
         return expr;
     }
     case l_paren: {

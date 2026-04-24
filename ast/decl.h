@@ -39,6 +39,7 @@ class Declaration : public Node {
 
 class VariableDeclaration : public Declaration {
     friend class ::Parser;
+    friend class semantic::SemanticAnalyzer; // Deduces type from init
 
   public:
     void dump(std::ostream &os, int indent) const override;
@@ -50,9 +51,9 @@ class VariableDeclaration : public Declaration {
         return name_;
     }
 
-    [[nodiscard]] auto &&type() const
+    [[nodiscard]] auto &&declared_type() const
     {
-        return type_;
+        return declared_type_;
     }
 
     [[nodiscard]] auto &&init() const
@@ -60,10 +61,17 @@ class VariableDeclaration : public Declaration {
         return init_;
     }
 
+    [[nodiscard]] semantic::Type *resolved_type() const
+    {
+        return resolved_type_;
+    }
+
   private:
     std::string name_;
-    TypePtr type_;
+    TypePtr declared_type_;
     ExpressionPtr init_;
+
+    semantic::Type *resolved_type_{};
 };
 
 class FunctionDeclaration : public Declaration {
